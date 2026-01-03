@@ -5,4 +5,3 @@ numpy
 pandas
 matplotlib
 python-dotenv
-gymnasium

@@ -5,7 +5,6 @@ Store useful variables and configuration
 from pathlib import Path
 
 from dotenv import load_dotenv
-import os
 
 # Load environment variables from .env file if it exists
 load_dotenv()
@@ -23,6 +22,3 @@ MODELS_DIR = PROJ_ROOT / "models"
 
 REPORTS_DIR = PROJ_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
-
-
-ENV_NAME = os.environ.get("ENV_NAME", "CartPole-v1")
