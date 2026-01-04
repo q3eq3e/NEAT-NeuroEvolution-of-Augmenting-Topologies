@@ -1,8 +1,8 @@
 import gymnasium as gym
 import numpy as np
 from enum import Enum
-# from src.config import ENV_NAME
-ENV_NAME = "Acrobot-v1"
+
+from src.config import ENV_NAME
 # "CartPole-v1"
 # "Pendulum-v1"
 # "Acrobot-v1"
