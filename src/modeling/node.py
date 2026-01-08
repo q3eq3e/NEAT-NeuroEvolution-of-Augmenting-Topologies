@@ -48,5 +48,7 @@ class Node:
             sum += self.inputs[i].out * self.weights[i]
 
         sum += self.bias
-        self.out = self.act(sum)
-        return self.out
+        return self.act(sum)
+
+    def set_output(self, output):
+        self.out = output
