@@ -110,3 +110,6 @@ class Connection:
 
     def enable(self):
         self.enabled = True
+
+    def set_enabled(self, enabled: bool):
+        self.enabled = enabled

@@ -23,7 +23,7 @@ class NN:
             #         self.nodes[j], self.nodes[input_size + i], i * input_size + j
             #     )
 
-    def from_genome(genome):
+    def create_from_genome(genome, act=sigmoid):
         input_mid_nodes = set()
         output_mid_nodes = set()
         for conn in genome:
@@ -31,8 +31,8 @@ class NN:
             input_mid_nodes.add(conn.get_target_node())
         input_nodes = genome not in output_mid_nodes
         output_nodes = genome not in input_mid_nodes
-        nn = NN(len(input_nodes), len(output_nodes))
-        # requires cahnge
+        nn = NN(len(input_nodes), len(output_nodes), act)
+
         for conn in genome:
             if (
                 conn.get_source_node() in nn.nodes
@@ -51,7 +51,13 @@ class NN:
                     nn.get_connection(conn.get_source_node(), to_node),
                     conn.innovation_number,
                 )
-            # wagi
+                nn.active_connections()[-2].set_weight(conn.get_weight())
+                nn.active_connections()[-2].set_enabled(conn.enabled)
+                conn = next(conn)
+                nn.active_connections()[-1].set_weight(conn.get_weight())
+                nn.active_connections()[-1].set_enabled(conn.enabled)
+            else:
+                ValueError("Genome cannot be transformed into NN.")
 
         return nn
 
@@ -63,6 +69,9 @@ class NN:
             ):
                 return conn
         return None
+
+    def conn_exists(self, from_node, to_node):
+        return self.get_connection(from_node, to_node) is not None
 
     def add_connection(self, from_node, to_node, innovation_number, weight=1.0):
         new_connection = to_node.add_input(from_node, weight, innovation_number)
