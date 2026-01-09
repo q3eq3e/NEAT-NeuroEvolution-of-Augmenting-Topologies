@@ -23,5 +23,8 @@ if __name__ == "__main__":
     nn.add_node(nn.active_connections()[-1], 11)
     nn.add_connection(nn.nodes[-1], nn.nodes[4], -1.5)
     nn.add_node(nn.active_connections()[-1], 11)
+    nn.add_node(nn.active_connections()[3], 11)
     print(nn)
     print(nn.calculate_output([1.0, 1.0, 1.0]))
+    # nn = NN(3, 2)
+    # print(nn)

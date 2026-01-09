@@ -47,11 +47,11 @@ class Node:
         #     if node.layer >= self.layer:
         #         self.layer = node.layer + 1
 
-    def rm_input(self, input_node):
-        for conn in self.connections:
-            if conn.get_source_node() == input_node:
-                conn.disable()
-                return
+    # def rm_input(self, input_node):
+    #     for conn in self.connections:
+    #         if conn.get_source_node() == input_node:
+    #             conn.disable()
+    #             return
 
     def calculate_output(self):
         if self.type == NodeTypes.INPUT:

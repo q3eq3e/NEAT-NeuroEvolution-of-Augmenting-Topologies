@@ -1,6 +1,7 @@
 from src.modeling.node import Node
 from src.modeling.node import NodeTypes
-from src.modeling.node import Connection
+
+# from src.modeling.node import Connection
 from src.modeling.activation import sigmoid, identity
 
 
@@ -11,18 +12,57 @@ class NN:
         self.connections = []
         self.nodes = []
         for i in range(input_size):
-            self.nodes.append(
-                Node(i, NodeTypes.INPUT, 1.0, identity, 0)
-            )  # dlaczego bias 1.0?
+            self.nodes.append(Node(i, NodeTypes.INPUT, 0.0, identity, 0))
         for i in range(output_size):
             self.nodes.append(Node(input_size + i, NodeTypes.OUTPUT, 0.0, act, 1))
         self.act = act
         for i in range(output_size):
-            # self.add_connection(self.nodes[0], self.nodes[input_size + i])
-            for j in range(input_size):
-                self.add_connection(
-                    self.nodes[j], self.nodes[input_size + i], i * input_size + j
+            self.add_connection(self.nodes[0], self.nodes[input_size + i], i)
+            # for j in range(input_size):
+            #     self.add_connection(
+            #         self.nodes[j], self.nodes[input_size + i], i * input_size + j
+            #     )
+
+    def from_genome(genome):
+        input_mid_nodes = set()
+        output_mid_nodes = set()
+        for conn in genome:
+            output_mid_nodes.add(conn.get_source_node())
+            input_mid_nodes.add(conn.get_target_node())
+        input_nodes = genome not in output_mid_nodes
+        output_nodes = genome not in input_mid_nodes
+        nn = NN(len(input_nodes), len(output_nodes))
+        # requires cahnge
+        for conn in genome:
+            if (
+                conn.get_source_node() in nn.nodes
+                and conn.get_target_node() in nn.nodes
+            ):
+                nn.add_connection(
+                    conn.get_source_node(),
+                    conn.get_target_node(),
+                    conn.innovation_number,
+                    conn.get_weight(),
+                    conn.enabled,
                 )
+            elif conn.get_source_node() in nn.nodes:
+                to_node = next(conn).get_target_node()
+                nn.add_node(
+                    nn.get_connection(conn.get_source_node(), to_node),
+                    conn.innovation_number,
+                )
+            # wagi
+
+        return nn
+
+    def get_connection(self, from_node, to_node):
+        for conn in self.connections:
+            if (
+                conn.get_source_node() == from_node
+                and conn.get_target_node() == to_node
+            ):
+                return conn
+        return None
 
     def add_connection(self, from_node, to_node, innovation_number, weight=1.0):
         new_connection = to_node.add_input(from_node, weight, innovation_number)
@@ -32,7 +72,8 @@ class NN:
     #     to_node.rm_input(from_node)
 
     def _remove_connection(self, connection):
-        connection.get_target_node().rm_input(connection.get_source_node())
+        connection.disable()
+        # connection.get_target_node().rm_input(connection.get_source_node())
 
     def active_connections(self):
         return [conn for conn in self.connections if conn.enabled]
