@@ -1,0 +1,27 @@
+from src.modeling.nn import NN
+
+if __name__ == "__main__":
+    nn = NN(3, 2)
+    print(nn.calculate_output([1.0, 1.0, 1.0]))
+    nn.add_connection(nn.nodes[3], nn.nodes[3], 0.5)
+    nn.add_connection(nn.nodes[3], nn.nodes[4], 0.5)
+    nn.active_connections()[0].disable()
+    print(nn.calculate_output([1.0, 1.0, 1.0]))
+    nn.active_connections()[0].set_weight(-0.5)
+    print(nn.calculate_output([1.0, 1.0, 1.0]))
+    nn.add_node(nn.active_connections()[0], 7)
+    print(nn.calculate_output([1.0, 1.0, 1.0]))
+    nn.add_node(nn.active_connections()[6], 8)
+    nn.add_node(nn.active_connections()[1], 9)
+    nn.add_node(nn.active_connections()[-1], 9)
+    nn.add_node(nn.active_connections()[4], 9)
+
+    nn.add_connection(nn.nodes[-5], nn.nodes[-4], -1.5)
+    nn.add_node(nn.active_connections()[-1], 10)
+    # nn.add_connection(nn.nodes[1], nn.nodes[0], 1.5)
+    nn.add_connection(nn.nodes[5], nn.nodes[3], 0.3)
+    nn.add_node(nn.active_connections()[-1], 11)
+    nn.add_connection(nn.nodes[-1], nn.nodes[4], -1.5)
+    nn.add_node(nn.active_connections()[-1], 11)
+    print(nn)
+    print(nn.calculate_output([1.0, 1.0, 1.0]))

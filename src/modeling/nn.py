@@ -1,6 +1,6 @@
 from src.modeling.node import Node
 from src.modeling.node import NodeTypes
-from src.modeling.connection import Connection
+from src.modeling.node import Connection
 from src.modeling.activation import sigmoid, identity
 
 
@@ -20,16 +20,18 @@ class NN:
         for i in range(output_size):
             # self.add_connection(self.nodes[0], self.nodes[input_size + i])
             for j in range(input_size):
-                self.add_connection(self.nodes[j], self.nodes[input_size + i])
+                self.add_connection(
+                    self.nodes[j], self.nodes[input_size + i], i * input_size + j
+                )
 
     def add_connection(self, from_node, to_node, innovation_number, weight=1.0):
         new_connection = to_node.add_input(from_node, weight, innovation_number)
         self.connections.append(new_connection)
 
-    def remove_connection(self, from_node, to_node):
-        to_node.rm_input(from_node)
+    # def remove_connection(self, from_node, to_node):
+    #     to_node.rm_input(from_node)
 
-    def remove_connection_obj(self, connection):
+    def _remove_connection(self, connection):
         connection.get_target_node().rm_input(connection.get_source_node())
 
     def active_connections(self):
@@ -39,7 +41,7 @@ class NN:
         if act is None:
             act = self.act
 
-        new_node_layer = self.adjust_layers(
+        new_node_layer = self._adjust_layers(
             connection.get_source_node(), connection.get_target_node()
         )
         new_node = Node(len(self.nodes), NodeTypes.HIDDEN, bias, act, new_node_layer)
@@ -53,18 +55,19 @@ class NN:
             innovation + 1,
             weight=removed_weight,
         )
-        self.remove_connection_obj(connection)
+        self._remove_connection(connection)
         self.nodes.append(new_node)
         self.nodes.sort(key=lambda node: node.layer)
 
-    def adjust_layers(self, connection_from, connection_to):
+    def _adjust_layers(self, connection_from, connection_to):
         layer_diff = connection_to.layer - connection_from.layer
         if layer_diff > 1:
             new_node_layer = connection_from.layer + 1
         elif layer_diff == 1:
             # Need to insert a new layer
+            dst_layer = connection_to.layer
             for node in self.nodes:
-                if node.layer >= connection_to.layer:
+                if node.layer >= dst_layer:
                     node.layer += 1
             new_node_layer = connection_from.layer + 1
         elif layer_diff == 0:
@@ -77,8 +80,9 @@ class NN:
                 new_node_layer = connection_from.layer
         elif layer_diff == -1:
             # Need to insert a new layer
+            src_layer = connection_from.layer
             for node in self.nodes:
-                if node.layer >= connection_from.layer:
+                if node.layer >= src_layer:
                     node.layer += 1
             new_node_layer = connection_to.layer + 1
         else:  # layer_diff < -1
@@ -104,3 +108,84 @@ class NN:
             output = [self.nodes[i].out] + output
             i -= 1
         return output
+
+    def __str__(self):
+        neurons_in_layer = [
+            [n for n in self.nodes if n.layer == i]
+            for i in range(self.nodes[-1].layer + 1)
+        ]
+        pos_neurons = [
+            {
+                "y": int(n.layer * 20),
+                "x": int(
+                    50
+                    * (neurons_in_layer[n.layer].index(n) + 1)
+                    / (len(neurons_in_layer[n.layer]) + 1)
+                ),
+            }
+            for n in self.nodes
+        ]
+        print(pos_neurons)
+
+        max_x = max(p["x"] for p in pos_neurons)
+        max_y = max(p["y"] for p in pos_neurons)
+
+        W = int(max_x + 3)
+        H = int(max_y + 3)
+
+        canvas = [[" " for _ in range(W)] for _ in range(H)]
+
+        # rysowanie krawędzi
+        for conn in self.active_connections():
+            src = conn.get_source_node()
+            dst = conn.get_target_node()
+            x1, y1 = (
+                pos_neurons[self.nodes.index(src)]["x"],
+                pos_neurons[self.nodes.index(src)]["y"],
+            )
+            x2, y2 = (
+                pos_neurons[self.nodes.index(dst)]["x"],
+                pos_neurons[self.nodes.index(dst)]["y"],
+            )
+            print(f"Conn from ({x1},{y1}) to ({x2},{y2})")
+            dx = x2 - x1
+            dy = y2 - y1
+
+            steps = max(abs(dx), abs(dy))
+            if steps == 0:
+                canvas[y1 + 1][x1] = "/"
+                canvas[y1 + 1][x1 - 1] = "-"
+                canvas[y1 + 1][x1 - 2] = "\\"
+                canvas[y1][x1 - 2] = "|"
+                canvas[y1 - 1][x1 - 2] = "/"
+                canvas[y1 - 1][x1 - 1] = "-"
+                canvas[y1 - 1][x1] = "\\"
+            else:
+                for i in range(1, steps):
+                    x = x1 + dx * i // steps
+                    y = y1 + dy * i // steps
+                    x = round(x)
+                    y = round(y)
+
+                    if dx == 0:
+                        canvas[y][x] = "|"
+                    elif dy == 0:
+                        canvas[y][x] = "-"
+                    elif (dx > 0 and dy > 0) or (dx < 0 and dy < 0):
+                        canvas[y][x] = "\\"
+                    else:
+                        canvas[y][x] = "/"
+                # rysowanie grotu strzałki
+                x2 = x1 + dx * (steps - 1) // steps
+                y2 = y1 + dy * (steps - 1) // steps
+
+            x2 = round(x2)
+            y2 = round(y2)
+            # grot strzałki
+            canvas[y2][x2] = "●"
+
+        # rysowanie neuronów
+        for n in pos_neurons:
+            canvas[n["y"]][n["x"]] = "O"
+
+        return "\n".join("".join(row) for row in canvas)

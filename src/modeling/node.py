@@ -1,5 +1,4 @@
 from enum import Enum
-from src.modeling.connection import Connection
 
 
 class NodeTypes(Enum):
@@ -51,7 +50,7 @@ class Node:
     def rm_input(self, input_node):
         for conn in self.connections:
             if conn.get_source_node() == input_node:
-                self.connections.disable()
+                conn.disable()
                 return
 
     def calculate_output(self):
@@ -67,3 +66,47 @@ class Node:
 
     def set_output(self, output):
         self.out = output
+
+
+class Connection:
+    def __init__(
+        self,
+        from_node,
+        to_node,
+        weight: float,
+        innovation_number: int,
+        enabled: bool = True,
+    ):
+        if to_node.type == NodeTypes.INPUT:
+            raise ValueError("Cannot create connection to input node.")
+        self.from_node = from_node
+        self.to_node = to_node
+        self.weight = weight
+        self.innovation_number = innovation_number
+        self.enabled = enabled
+
+    def __str__(self):
+        return (
+            f"Connection(from: {self.from_node.index}, to: {self.to_node.index}, weight: {self.weight}, innovation_number: {self.innovation_number}, "
+            + "Enabled"
+            if self.enabled
+            else "DISABLED" + ")"
+        )
+
+    def get_weight(self):
+        return self.weight
+
+    def set_weight(self, weight):
+        self.weight = weight
+
+    def get_source_node(self):
+        return self.from_node
+
+    def get_target_node(self):
+        return self.to_node
+
+    def disable(self):
+        self.enabled = False
+
+    def enable(self):
+        self.enabled = True
