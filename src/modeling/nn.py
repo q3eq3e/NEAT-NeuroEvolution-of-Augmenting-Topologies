@@ -1,39 +1,59 @@
 from src.modeling.node import Node
 from src.modeling.node import NodeTypes
-from src.modeling.activation import sigmoid
+from src.modeling.connection import Connection
+from src.modeling.activation import sigmoid, identity
 
 
 class NN:
     def __init__(self, input_size, output_size, act=sigmoid):
         self.input_size = input_size
         self.output_size = output_size
+        self.connections = []
         self.nodes = []
         for i in range(input_size):
-            self.nodes.append(Node(i, NodeTypes.INPUT, 1.0, act, 0))
+            self.nodes.append(
+                Node(i, NodeTypes.INPUT, 1.0, identity, 0)
+            )  # dlaczego bias 1.0?
         for i in range(output_size):
             self.nodes.append(Node(input_size + i, NodeTypes.OUTPUT, 0.0, act, 1))
         self.act = act
         for i in range(output_size):
-            self.add_connection(self.nodes[0], self.nodes[input_size + i])
+            # self.add_connection(self.nodes[0], self.nodes[input_size + i])
+            for j in range(input_size):
+                self.add_connection(self.nodes[j], self.nodes[input_size + i])
 
-    def add_connection(self, from_node, to_node, weight=1.0):
-        to_node.add_input(from_node, weight)
+    def add_connection(self, from_node, to_node, innovation_number, weight=1.0):
+        new_connection = to_node.add_input(from_node, weight, innovation_number)
+        self.connections.append(new_connection)
 
     def remove_connection(self, from_node, to_node):
         to_node.rm_input(from_node)
 
-    def add_node(self, connection_from, connection_to, act=None, bias=0.0):
+    def remove_connection_obj(self, connection):
+        connection.get_target_node().rm_input(connection.get_source_node())
+
+    def active_connections(self):
+        return [conn for conn in self.connections if conn.enabled]
+
+    def add_node(self, connection, innovation, act=None, bias=0.0):
         if act is None:
             act = self.act
 
-        new_node_layer = self.adjust_layers(connection_from, connection_to)
+        new_node_layer = self.adjust_layers(
+            connection.get_source_node(), connection.get_target_node()
+        )
         new_node = Node(len(self.nodes), NodeTypes.HIDDEN, bias, act, new_node_layer)
-        removed_weight = connection_to.weights[
-            connection_to.inputs.index(connection_from)
-        ]
-        self.add_connection(connection_from, new_node, weight=1.0)
-        self.add_connection(new_node, connection_to, weight=removed_weight)
-        connection_to.rm_input(connection_from)
+        removed_weight = connection.get_weight()
+        self.add_connection(
+            connection.get_source_node(), new_node, innovation, weight=1.0
+        )
+        self.add_connection(
+            new_node,
+            connection.get_target_node(),
+            innovation + 1,
+            weight=removed_weight,
+        )
+        self.remove_connection_obj(connection)
         self.nodes.append(new_node)
         self.nodes.sort(key=lambda node: node.layer)
 
