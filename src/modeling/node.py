@@ -8,7 +8,7 @@ class NodeTypes(Enum):
 
 
 class Node:
-    def __init__(self, index, type, bias, act, layer):
+    def __init__(self, index, type, bias, act, layer, out=0.0):
         self.index = index
         self.type = type
         self.bias = bias
@@ -19,7 +19,7 @@ class Node:
         # self.inputs = []
         self.connections = []
         # self.outputs = []
-        self.out = 0.0
+        self.out = out
         if self.type == NodeTypes.INPUT:
             self.layer = 0
 
@@ -82,15 +82,16 @@ class Connection:
         self.from_node = from_node
         self.to_node = to_node
         self.weight = weight
+        if not isinstance(innovation_number, int) or innovation_number < 0:
+            raise ValueError(f"Invalid innovation number: {innovation_number} .")
         self.innovation_number = innovation_number
         self.enabled = enabled
 
     def __str__(self):
         return (
             f"Connection(from: {self.from_node.index}, to: {self.to_node.index}, weight: {self.weight}, innovation_number: {self.innovation_number}, "
-            + "Enabled"
-            if self.enabled
-            else "DISABLED" + ")"
+            + ("Enabled" if self.enabled else "DISABLED")
+            + ")"
         )
 
     def get_weight(self):

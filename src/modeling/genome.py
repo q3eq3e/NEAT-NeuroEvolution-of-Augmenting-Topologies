@@ -14,6 +14,8 @@ class Genome:
 
         if nn is None:
             self.nn: NN = self._create_nn()
+        else:
+            self.nn: NN = nn
 
     def create_from_nn(nn):
         return Genome(nn.connections, nn)
@@ -25,33 +27,10 @@ class Genome:
         return self.nn
 
     def _create_nn(self):
-        input_mid_nodes = set()
-        output_mid_nodes = set()
-        for conn in self.genes:
-            output_mid_nodes.add(conn.get_source_node())
-            input_mid_nodes.add(conn.get_target_node())
-        input_nodes = self.nodes not in output_mid_nodes
-        output_nodes = self.nodes not in input_mid_nodes
-        nn = NN(len(input_nodes), len(output_nodes))
-        # requires cahnge
-        for conn in self.genes:
-            if (
-                conn.get_source_node() in nn.nodes
-                and conn.get_target_node() in nn.nodes
-            ):
-                nn.add_connection(
-                    conn.get_source_node(),
-                    conn.get_target_node(),
-                    conn.innovation_number,
-                    conn.get_weight(),
-                    conn.enabled,
-                )
-            elif conn.get_source_node() in nn.nodes:
-                to_node = next(conn).get_target_node()
-                nn.add_node(
-                    nn.get_connection(conn.get_source_node(), to_node),
-                    conn.innovation_number,
-                )
-            # wagi
+        return NN.create_from_genome(self._genes)
 
-        return nn
+    def __str__(self):
+        res = ""
+        for gene in self.get_genes():
+            res += str(gene) + "\n"
+        return res
