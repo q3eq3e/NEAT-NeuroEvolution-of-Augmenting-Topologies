@@ -24,55 +24,6 @@ class NN:
             #         self.nodes[j], self.nodes[input_size + i], i * input_size + j
             #     )
 
-    def create_from_genome_depreciated(genome, act=sigmoid):
-        genome = deepcopy(genome)
-        input_nodes = set()
-        output_nodes = set()
-        for conn in genome:
-            if conn.get_source_node().type == NodeTypes.INPUT:
-                input_nodes.add(conn.get_source_node())
-            if conn.get_target_node().type == NodeTypes.OUTPUT:
-                output_nodes.add(conn.get_target_node())
-
-        nn = NN(len(input_nodes), len(output_nodes), act)
-        nn.nodes = list(input_nodes) + list(output_nodes)
-        nn.connections = []
-
-        for i, conn in enumerate(genome):
-            if (
-                conn.get_source_node() in nn.nodes
-                and conn.get_target_node() in nn.nodes
-            ):
-                from_node = conn.get_source_node()
-                to_node = conn.get_target_node()
-                nn.add_connection(
-                    from_node,
-                    to_node,
-                    conn.innovation_number,
-                    conn.get_weight(),
-                )
-            elif conn.get_source_node() in nn.nodes:
-                last_node = genome[i + 1].get_target_node()
-                # new_node = deepcopy(conn.get_target_node())
-                # nn.nodes.append(new_node)
-                from_node = conn.get_source_node()
-                nn.add_node(
-                    nn.get_connection(from_node, last_node),
-                    conn.innovation_number,
-                    conn.get_target_node().act,
-                    conn.get_target_node().bias,
-                    conn.get_target_node().out,
-                )
-                nn.active_connections()[-2].set_weight(conn.get_weight())
-                nn.active_connections()[-2].set_enabled(conn.enabled)
-                next_conn = genome[i + 1]
-                nn.active_connections()[-1].set_weight(next_conn.get_weight())
-                nn.active_connections()[-1].set_enabled(next_conn.enabled)
-            else:
-                ValueError("Genome cannot be transformed into NN.")
-
-        return nn
-
     def create_from_genome(genes, act=sigmoid):
         unique_nodes = set()
         for conn in genes:
@@ -211,6 +162,7 @@ class NN:
             }
             for n in self.nodes
         ]
+        print("------ Neural Network Visualization ------")
         print(pos_neurons)
 
         max_x = max(p["x"] for p in pos_neurons)

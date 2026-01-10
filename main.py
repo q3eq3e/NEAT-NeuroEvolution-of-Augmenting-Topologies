@@ -49,6 +49,8 @@ if __name__ == "__main__":
     genes.append(Connection(C, E, 1.0, 0))
     genes.append(Connection(E, B, 1.0, 0))
     genome = Genome(genes)
+    genome2 = Genome.create_from_nn(genome.get_nn())
+    # genome2 = Genome(genome.get_genes(), genome.get_nn())
     print(genome)
     nn = genome.get_nn()
     print(nn)
