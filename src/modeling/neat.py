@@ -69,9 +69,6 @@ class NEAT:
 
     def mutate_add_node(self, genome: Genome, innovation_number: int) -> None:
         connection = random.choice(genome.get_active_genes())
-        while not connection.enabled:
-            connection = random.choice(genome.get_active_genes())
-
         genome.nn.add_node(connection, innovation_number)
 
     def mutate_add_connection(self, genome: Genome, innovation_number: int) -> None:
