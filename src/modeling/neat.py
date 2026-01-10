@@ -81,50 +81,51 @@ class NEAT:
                 return
             attempts += 1
 
-    def mutate_weights(self, genome: Genome, mutation_rate=0.8) -> None:
+    def mutate_weights(self, genome: Genome) -> None:
         for gene in genome.get_genes():
-            if random.random() < mutation_rate:
+            if random.random() < self.weight_mutation_rate:
                 gene.weight += random.uniform(-0.5, 0.5)
 
     def mutate(
         self,
         genome: Genome
     ) -> None:
-        if random.random() < self.weight_mutation_rate:
-            self.mutate_weights(genome)
+        self.mutate_weights(genome)
 
         if random.random() < self.add_node_rate:
             innovation_number = self.get_new_innovation_number()
+            self.get_new_innovation_number()
             self.mutate_add_node(genome, innovation_number)
 
         if random.random() < self.add_connection_rate:
             innovation_number = self.get_new_innovation_number()
-            self.get_new_innovation_number()
             self.mutate_add_connection(genome, innovation_number)
 
     def delta(self, genome1, genome2):
-        gens1 = [gen.innovation_number for gen in genome1.nn.connections]
-        gens2 = [gen.innovation_number for gen in genome2.nn.connections]
-        max_innovation1 = max(gens1)
-        max_innovation2 = max(gens2)
-        excess_border = min(max_innovation1, max_innovation2)
+        genes1 = {gene.innovation_number: gene for gene in genome1.get_genes()}
+        genes2 = {gene.innovation_number: gene for gene in genome2.get_genes()}
+
+        excess_border = min(max(genes1.keys()), max(genes2.keys()))
         E = 0
         D = 0
         W = 0
-        N = max(len(gens1), len(gens2))
-        for gen in gens1:
-            if gen > excess_border:
-                E += 1
-            elif gen in gens2:
-                W += abs(genome1.nn.connections[gen].weight - genome2.nn.connections[gen].weight)
+        intersections = 0
+        N = max(len(genes1), len(genes2))
+        all_innovations = set(genes1.keys()).union(set(genes2.keys()))
+
+        for innovation in all_innovations:
+            gene1 = genes1.get(innovation)
+            gene2 = genes2.get(innovation)
+            if gene1 and gene2:
+                W += abs(gene1.weight - gene2.weight)
+                intersections += 1
+            elif innovation < excess_border:
+                D += 1
             else:
-                D += 1
-        W = W / (len(gens1) - E - D)
-        for gen in gens2:
-            if gen > excess_border:
                 E += 1
-            elif gen not in gens1:
-                D += 1
+
+        if intersections > 0:
+            W /= intersections
         return (self.c1 * E / N) + (self.c2 * D / N) + self.c3 * W
 
     def speciate(self):
@@ -143,14 +144,17 @@ class NEAT:
     def determine_offspring(self):
         species_fitness = []
         global_fitness = 0
+
         for species in self.species:
             species_fitness.append(0)
             for genome in species:
                 global_fitness += genome.fitness
                 species_fitness[-1] += genome.fitness
-        if not global_fitness:
-            return
+
         avg_fitness = global_fitness / len(self.genomes)
+        if avg_fitness == 0:
+            return [len(species) for species in self.species]
+
         kids_per_species = [int(sf / avg_fitness) for sf in species_fitness]
         rest = len(self.genomes) - sum(kids_per_species)
         lucky_species = random.sample(range(len(kids_per_species)), rest)
@@ -161,21 +165,26 @@ class NEAT:
     def reproduce(self):
         kids_per_species = self.determine_offspring()
         offspring = []
-        for i, species in enumerate(self.species):
+
+        for i in range(len(self.species)):
             if kids_per_species[i] == 0:
                 continue
+
             copied_individuals = 0
             if self.best_individuals_copied < 1:
                 copied_individuals = int(self.best_individuals_copied * kids_per_species[i])
             else:
                 copied_individuals = min(int(self.best_individuals_copied), kids_per_species[i])
             kids_per_species[i] -= copied_individuals
+
             if copied_individuals > 0:
                 self.species[i].sort(key=lambda x: x.fitness, reverse=True)
                 offspring.extend(self.species[i][:copied_individuals])
+
             for _ in range(kids_per_species[i]):
                 parent1 = random.choice(self.species[i])
                 parent2 = random.choice(self.species[i])
                 child = self.crossover(parent1, parent2)
                 offspring.append(child)
+
         self.genomes = offspring
