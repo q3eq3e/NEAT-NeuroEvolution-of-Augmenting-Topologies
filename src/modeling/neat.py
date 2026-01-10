@@ -16,7 +16,7 @@ class NEAT:
         c1=1,
         c2=1,
         c3=0.5,
-        best_individuals_copied=0.2
+        best_individuals_copied=0.2,
     ):
         self.input_size = input_size
         self.output_size = output_size
@@ -28,7 +28,7 @@ class NEAT:
         self.c1 = c1
         self.c2 = c2
         self.c3 = c3
-        self.best_individuals_copied = best_individuals_copied
+        self.best_individuals_copied = best_individuals_copied  # number or fraction
         self._innovation_number = 0
         self.genomes = []
         self.species = [[self.genomes]]
@@ -40,6 +40,8 @@ class NEAT:
     def crossover(self, parent1: Genome, parent2: Genome) -> Genome:
         genes1 = {gene.innovation_number: gene for gene in parent1.get_genes()}
         genes2 = {gene.innovation_number: gene for gene in parent2.get_genes()}
+        equally_fit_parents = parent1.fitness == parent2.fitness
+        more_fit_parent_genes = genes1 if parent1.fitness > parent2.fitness else genes2
 
         child_genes = []
         all_innovations = set(genes1.keys()).union(set(genes2.keys()))
@@ -47,22 +49,28 @@ class NEAT:
         for innovation in all_innovations:
             gene1 = genes1.get(innovation)
             gene2 = genes2.get(innovation)
+            more_fit_parent_gene = more_fit_parent_genes.get(innovation)
 
             if gene1 and gene2:
                 chosen_gene = random.choice([gene1, gene2])
-            elif gene1:
-                chosen_gene = gene1
             else:
-                chosen_gene = gene2
-
+                if equally_fit_parents:
+                    if gene1:
+                        chosen_gene = gene1
+                    else:
+                        chosen_gene = gene2
+                else:
+                    chosen_gene = more_fit_parent_gene
+                    if chosen_gene is None:
+                        continue
             child_genes.append(chosen_gene)
 
         return Genome(child_genes)
 
     def mutate_add_node(self, genome: Genome, innovation_number: int) -> None:
-        connection = random.choice(genome.get_genes())
+        connection = random.choice(genome.get_active_genes())
         while not connection.enabled:
-            connection = random.choice(genome.get_genes())
+            connection = random.choice(genome.get_active_genes())
 
         genome.nn.add_node(connection, innovation_number)
 
@@ -73,8 +81,8 @@ class NEAT:
         attempts = 0
         while attempts < max_attempts:
             from_node = random.choice(nodes)
-            to_node = random.choice(nodes)
-            if from_node != to_node and not genome.nn.conn_exists(from_node, to_node):
+            to_node = random.choice([n for n in nodes if not n.is_input_node()])
+            if not genome.nn.conn_exists(from_node, to_node):
                 genome.nn.add_connection(
                     from_node, to_node, innovation_number, random.uniform(-1.0, 1.0)
                 )
@@ -82,14 +90,16 @@ class NEAT:
             attempts += 1
 
     def mutate_weights(self, genome: Genome) -> None:
-        for gene in genome.get_genes():
+        for gene in genome.get_active_genes():
             if random.random() < self.weight_mutation_rate:
-                gene.weight += random.uniform(-0.5, 0.5)
+                gene.set_weight(gene.get_weight() + random.uniform(-0.5, 0.5))
+        # bias mutation
+        for node in genome.get_nn().nodes:
+            if not node.is_input_node():
+                if random.random() < self.weight_mutation_rate:
+                    node.bias += random.uniform(-0.5, 0.5)
 
-    def mutate(
-        self,
-        genome: Genome
-    ) -> None:
+    def mutate(self, genome: Genome) -> None:
         self.mutate_weights(genome)
 
         if random.random() < self.add_node_rate:
@@ -119,7 +129,7 @@ class NEAT:
             if gene1 and gene2:
                 W += abs(gene1.weight - gene2.weight)
                 intersections += 1
-            elif innovation < excess_border:
+            elif innovation <= excess_border:
                 D += 1
             else:
                 E += 1
@@ -172,9 +182,15 @@ class NEAT:
 
             copied_individuals = 0
             if self.best_individuals_copied < 1:
-                copied_individuals = int(self.best_individuals_copied * kids_per_species[i])
+                # parameter treated as a fraction inside a species
+                copied_individuals = int(
+                    self.best_individuals_copied * kids_per_species[i]
+                )
             else:
-                copied_individuals = min(int(self.best_individuals_copied), kids_per_species[i])
+                # parameter treated as an absolute number inside a species
+                copied_individuals = min(
+                    int(self.best_individuals_copied), kids_per_species[i]
+                )
             kids_per_species[i] -= copied_individuals
 
             if copied_individuals > 0:

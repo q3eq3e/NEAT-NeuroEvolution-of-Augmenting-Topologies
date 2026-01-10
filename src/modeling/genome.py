@@ -21,6 +21,9 @@ class Genome:
     def get_genes(self):
         return self.nn.connections
 
+    def get_active_genes(self):
+        return self.nn.active_connections()
+
     def get_nn(self):
         return self.nn
 

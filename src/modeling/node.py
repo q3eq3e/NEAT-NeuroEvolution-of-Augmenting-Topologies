@@ -11,7 +11,7 @@ class Node:
     def __init__(self, index, type, bias, act, layer):
         self.index = index
         self.type = type
-        self.bias = bias
+        self.bias = bias  # different behaviour than in the paper
         self.act = act
         self.layer = layer
 
@@ -66,6 +66,12 @@ class Node:
 
     def set_output(self, output):
         self.out = output
+
+    def is_input_node(self):
+        return self.type == NodeTypes.INPUT
+
+    def is_output_node(self):
+        return self.type == NodeTypes.OUTPUT
 
 
 class Connection:
