@@ -120,3 +120,11 @@ class Connection:
 
     def set_enabled(self, enabled: bool):
         self.enabled = enabled
+
+    def __eq__(self, value):
+        if not isinstance(value, Connection):
+            return False
+        return self.from_node == value.from_node and self.to_node == value.to_node
+
+    def __hash__(self):
+        return hash((self.from_node, self.to_node))

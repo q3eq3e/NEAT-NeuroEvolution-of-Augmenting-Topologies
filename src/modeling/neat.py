@@ -1,5 +1,6 @@
 import random
 from src.modeling.genome import Genome
+from src.modeling.nn import NN
 from src.modeling.activation import sigmoid, identity
 
 
@@ -17,6 +18,7 @@ class NEAT:
         c2=1,
         c3=0.5,
         best_individuals_copied=0.2,
+        population_size=100,
     ):
         self.input_size = input_size
         self.output_size = output_size
@@ -29,6 +31,7 @@ class NEAT:
         self.c2 = c2
         self.c3 = c3
         self.best_individuals_copied = best_individuals_copied  # number or fraction
+        self.population_size = population_size
         self._innovation_number = 0
         self.genomes = []
         self.species = [[self.genomes]]
@@ -36,6 +39,16 @@ class NEAT:
     def get_new_innovation_number(self):
         self._innovation_number += 1
         return self._innovation_number - 1
+
+    def initialize_population(self):
+        self.genomes = []
+        for _ in range(self.population_size):
+            nn = NN(self.input_size, self.output_size, self.act)
+            connections_nr = len(nn.connections)
+            genome = Genome.create_from_nn(nn)
+            self.genomes.append(genome)
+        self._innovation_number = connections_nr
+        self.species = [[self.genomes]]
 
     def crossover(self, parent1: Genome, parent2: Genome) -> Genome:
         genes1 = {gene.innovation_number: gene for gene in parent1.get_genes()}
@@ -96,17 +109,30 @@ class NEAT:
                 if random.random() < self.weight_mutation_rate:
                     node.bias += random.uniform(-0.5, 0.5)
 
-    def mutate(self, genome: Genome) -> None:
+    def _mutate(self, genome: Genome) -> None:
         self.mutate_weights(genome)
 
+        innovations = []
         if random.random() < self.add_node_rate:
             innovation_number = self.get_new_innovation_number()
             self.get_new_innovation_number()
             self.mutate_add_node(genome, innovation_number)
+            innovations.append(genome.get_active_genes()[-2])
+            innovations.append(genome.get_active_genes()[-1])
 
         if random.random() < self.add_connection_rate:
             innovation_number = self.get_new_innovation_number()
             self.mutate_add_connection(genome, innovation_number)
+            innovations.append(genome.get_active_genes()[-1])
+
+        return innovations
+
+    def mutate_population(self):
+        new_innovations = set()
+        for genome in self.genomes:
+            innovations = self._mutate(genome)
+            new_innovations.update(innovations)
+        self._adjust_innovations(new_innovations)
 
     def delta(self, genome1, genome2):
         genes1 = {gene.innovation_number: gene for gene in genome1.get_genes()}
@@ -201,3 +227,14 @@ class NEAT:
                 offspring.append(child)
 
         self.genomes = offspring
+
+    def _adjust_innovations(self, new_innovations: set):
+        for genome in self.genomes:
+            for i, gene in enumerate(genome.get_genes()[::-1]):
+                if i == 3:
+                    break  # at max only last 3 genes are new
+                for innov in new_innovations:
+                    if gene == innov:
+                        gene.innovation_number = innov.innovation_number
+                        self._innovation_number -= 1
+                        break
