@@ -41,9 +41,6 @@ class NN:
                         break
             if add_node:
                 conn.from_node = copy(conn.get_source_node())
-                for in_conn in conn.from_node.connections:
-                    raise ValueError("implement me")
-
                 unique_nodes.add(conn.from_node)
 
             node = conn.get_target_node()
@@ -56,10 +53,11 @@ class NN:
                         break
             if add_node:
                 conn.to_node = copy(conn.get_target_node())
-                raise ValueError("implement me")
                 unique_nodes.add(conn.to_node)
 
         unique_nodes = list(unique_nodes)
+        for node in unique_nodes:
+            node.connections = [conn for conn in genes if conn.to_node == node]
         input_size = len([n for n in unique_nodes if n.type == NodeTypes.INPUT])
         output_size = len([n for n in unique_nodes if n.type == NodeTypes.OUTPUT])
         nn = NN(input_size, output_size, act)

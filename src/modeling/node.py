@@ -39,7 +39,7 @@ class Node:
             )
             self.connections.append(new_connection)
             return new_connection
-        return ValueError("Input node already connected.")
+        raise ValueError("Input node already connected.")
         # self.weights.append(input_weight)
         # self.inputs.append(input_node)
 
@@ -55,7 +55,7 @@ class Node:
 
     def calculate_output(self):
         if self.type == NodeTypes.INPUT:
-            return ValueError("Input nodes do not calculate output.")
+            raise ValueError("Input nodes do not calculate output.")
 
         sum = 0.0
         for conn in self.get_active_connections():

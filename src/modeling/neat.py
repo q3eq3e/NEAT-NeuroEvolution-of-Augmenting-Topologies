@@ -10,7 +10,7 @@ class NEAT:
         self,
         input_size,
         output_size,
-        population_size=500,
+        population_size=50,
         act=sigmoid,
     ):
         self.input_size = input_size
@@ -68,8 +68,8 @@ class NEAT:
         genome.nn.add_node(connection, innovation_number)
 
     def mutate_add_connection(
-        self, genome: Genome, innovation_number: int, mutation_range: float = 1.0
-    ) -> None:
+        self, genome: Genome, innovation_number: int, mutation_range: float
+    ):
         nodes = genome.nn.nodes
 
         max_attempts = 100
@@ -89,7 +89,7 @@ class NEAT:
         return False
 
     def mutate_weights(
-        self, genome: Genome, weight_mutation_rate=0.8, mutation_range=0.5
+        self, genome: Genome, weight_mutation_rate: float, mutation_range: float
     ) -> None:
         for gene in genome.get_active_genes():
             if random.random() < weight_mutation_rate:
@@ -105,10 +105,10 @@ class NEAT:
     def _mutate(
         self,
         genome: Genome,
-        weight_mutation_rate=0.8,
-        mutation_range=0.5,
-        add_node_rate=0.05,
-        add_connection_rate=0.05,
+        weight_mutation_rate: float,
+        mutation_range: float,
+        add_node_rate: float,
+        add_connection_rate: float,
     ) -> None:
         self.mutate_weights(genome, weight_mutation_rate, mutation_range)
 
@@ -136,10 +136,10 @@ class NEAT:
 
     def mutate_population(
         self,
-        weight_mutation_rate=0.8,
-        mutation_range=0.5,
-        add_node_rate=0.05,
-        add_connection_rate=0.05,
+        weight_mutation_rate: float,
+        mutation_range: float,
+        add_node_rate: float,
+        add_connection_rate: float,
     ):
         new_innovations = set()
         for genome in self.genomes:
@@ -153,7 +153,7 @@ class NEAT:
             new_innovations.update(innovations)
         self._adjust_innovations(new_innovations)
 
-    def delta(self, genome1, genome2, c1=1.0, c2=1.0, c3=0.4):
+    def delta(self, genome1, genome2, c1: float, c2: float, c3: float):
         genes1 = {gene.innovation_number: gene for gene in genome1.get_genes()}
         genes2 = {gene.innovation_number: gene for gene in genome2.get_genes()}
 
@@ -180,7 +180,13 @@ class NEAT:
             W /= intersections
         return (c1 * E / N) + (c2 * D / N) + c3 * W
 
-    def speciate(self, c1=1.0, c2=1.0, c3=0.4, compatibility_threshold=3.0):
+    def speciate(
+        self,
+        c1: float,
+        c2: float,
+        c3: float,
+        compatibility_threshold: float,
+    ):
         new_species = [[] for _ in range(len(self.species))]
         representatives = [random.choice(s) for s in self.species if s]
         for genome in self.genomes:
@@ -217,7 +223,7 @@ class NEAT:
             kids_per_species[ls] += 1
         return kids_per_species
 
-    def reproduce(self, best_individuals_copied=0.2):
+    def reproduce(self, best_individuals_copied: float):
         kids_per_species = self.determine_offspring()
         offspring = []
 
@@ -270,8 +276,8 @@ class NEAT:
         c1=1,
         c2=1,
         c3=0.5,
-        best_individuals_copied=3,
-        num_generations=25,
+        best_individuals_copied=2,
+        num_generations=50,
     ):
         for _ in tqdm(range(num_generations)):
             for genome in self.genomes:
