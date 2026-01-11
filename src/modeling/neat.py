@@ -115,7 +115,7 @@ class NEAT:
         if random.random() < add_node_rate:
             innovation_number = self.get_new_innovation_number()
             self.get_new_innovation_number()
-            self.mutate_add_node(genome, innovation_number)
+            self.mutate_add_node(genome, innovation_number) # w niektórych przypadkach wszystkie są disabled po crossingu
             innovations.append(genome.get_active_genes()[-2])
             innovations.append(genome.get_active_genes()[-1])
 

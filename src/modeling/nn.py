@@ -3,7 +3,7 @@ from src.modeling.node import NodeTypes
 
 # from src.modeling.node import Connection
 from src.modeling.activation import sigmoid, identity
-from copy import deepcopy
+from copy import copy, deepcopy
 
 
 class NN:
@@ -26,6 +26,7 @@ class NN:
 
     def create_from_genome(genes, act=sigmoid):
         unique_nodes = set()
+        genes = copy(genes)
         for conn in genes:
             # unique_nodes.add(conn.get_source_node())
             # unique_nodes.add(conn.get_target_node())
@@ -35,10 +36,11 @@ class NN:
                 for u in unique_nodes:
                     if u.index == node.index:
                         add_node = False
-                        node = u
+                        conn.source_node = u
                         break
             if add_node:
-                unique_nodes.add(node)
+                conn.source_node = copy(conn.get_source_node())
+                unique_nodes.add(conn.source_node)
 
             node = conn.get_target_node()
             add_node = True
@@ -46,23 +48,20 @@ class NN:
                 for u in unique_nodes:
                     if u.index == node.index:
                         add_node = False
-                        node = u
+                        conn.target_node = u
                         break
             if add_node:
-                unique_nodes.add(node)
+                conn.target_node = copy(conn.get_target_node())
+                unique_nodes.add(conn.target_node)
 
         unique_nodes = list(unique_nodes)
         input_size = len([n for n in unique_nodes if n.type == NodeTypes.INPUT])
         output_size = len([n for n in unique_nodes if n.type == NodeTypes.OUTPUT])
         nn = NN(input_size, output_size, act)
-        # nn.connections = deepcopy(genes)
-        nn.nodes = []
+        nn.nodes = unique_nodes
+        nn.connections = genes
+        # print(len([n for n in nn.nodes if n.type == NodeTypes.OUTPUT]))
 
-        for conn in nn.connections:
-            if conn.get_source_node() not in nn.nodes:
-                nn.nodes.append(conn.get_source_node())
-            if conn.get_target_node() not in nn.nodes:
-                nn.nodes.append(conn.get_target_node())
         nn.nodes.sort(key=lambda node: node.layer)
         return nn
 
@@ -151,23 +150,23 @@ class NN:
 
     def calculate_output(self, inputs):
         i = 0
+        outputs = []
         while i < len(self.nodes) and self.nodes[i].type == NodeTypes.INPUT:
             self.nodes[i].set_output(inputs[i])
             i += 1
-        for layer in range(1, self.nodes[-1].layer + 1):
+        for layer in range(0, self.nodes[-1].layer + 1):
             j = i
             outputs = []
             while i < len(self.nodes) and self.nodes[i].layer == layer:
+                # if layer == self.nodes[-1].layer:
+                #     print(self.nodes[i])
+                #     print(self.nodes[i].calculate_output())
                 outputs.append(self.nodes[i].calculate_output())
                 i += 1
-            for node in self.nodes[j:i]:
-                node.set_output(outputs.pop(0))
-        output = []
-        i -= 1
-        while self.nodes[i].type == NodeTypes.OUTPUT:
-            output = [self.nodes[i].out] + output
-            i -= 1
-        return output
+            for k, node in enumerate(self.nodes[j:i]):
+                node.set_output(outputs[k])
+
+        return outputs
 
     def __str__(self):
         neurons_in_layer = [

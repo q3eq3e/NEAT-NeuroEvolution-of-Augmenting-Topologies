@@ -46,4 +46,5 @@ class Genome:
         return res
 
     def predict(self, input):
+        # print(self.nn.calculate_output(input))
         return self.nn.calculate_output(input)
