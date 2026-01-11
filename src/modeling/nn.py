@@ -58,6 +58,12 @@ class NN:
         unique_nodes = list(unique_nodes)
         for node in unique_nodes:
             node.connections = [conn for conn in genes if conn.to_node == node]
+
+        max_hidden_layer = max([node.layer for node in unique_nodes if node.type == NodeTypes.HIDDEN], default=0)
+        unique_nodes.sort(key=lambda node: node.layer)
+        for node in unique_nodes:
+            if node.type == NodeTypes.OUTPUT:
+                node.layer = max_hidden_layer + 1
         input_size = len([n for n in unique_nodes if n.type == NodeTypes.INPUT])
         output_size = len([n for n in unique_nodes if n.type == NodeTypes.OUTPUT])
         nn = NN(input_size, output_size, act)
