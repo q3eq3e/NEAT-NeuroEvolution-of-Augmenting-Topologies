@@ -25,4 +25,4 @@ MODELS_DIR = PROJ_ROOT / "models"
 REPORTS_DIR = PROJ_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
 
-ENV_NAME = os.getenv("ENV_NAME", "CartPole-v1")
+ENV_NAME = os.getenv("ENV_NAME", "Pendulum-v1")

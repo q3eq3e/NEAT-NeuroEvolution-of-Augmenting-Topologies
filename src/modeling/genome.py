@@ -9,7 +9,7 @@ class Genome:
         for gene in genes:
             if not isinstance(gene, Connection):
                 raise ValueError("All genes must be instances of Conncection.")
-        self.fitness: float = 0.0
+        self.fitness: float = -1e6
 
         if nn is None:
             self.nn: NN = self._create_nn(genes)
@@ -44,6 +44,6 @@ class Genome:
         for gene in self.get_genes():
             res += "   " + str(gene) + "\n"
         return res
-    
+
     def predict(self, input):
         return self.nn.calculate_output(input)

@@ -18,23 +18,46 @@ class NN:
             self.nodes.append(Node(input_size + i, NodeTypes.OUTPUT, 0.0, act, 1))
         self.act = act
         for i in range(output_size):
-            self.add_connection(self.nodes[0], self.nodes[input_size + i], i)
-            # for j in range(input_size):
-            #     self.add_connection(
-            #         self.nodes[j], self.nodes[input_size + i], i * input_size + j
-            #     )
+            # self.add_connection(self.nodes[0], self.nodes[input_size + i], i)
+            for j in range(input_size):
+                self.add_connection(
+                    self.nodes[j], self.nodes[input_size + i], i * input_size + j
+                )
 
     def create_from_genome(genes, act=sigmoid):
         unique_nodes = set()
         for conn in genes:
-            unique_nodes.add(conn.get_source_node())
-            unique_nodes.add(conn.get_target_node())
+            # unique_nodes.add(conn.get_source_node())
+            # unique_nodes.add(conn.get_target_node())
+            node = conn.get_source_node()
+            add_node = True
+            if node.type == NodeTypes.INPUT or node.type == NodeTypes.OUTPUT:
+                for u in unique_nodes:
+                    if u.index == node.index:
+                        add_node = False
+                        node = u
+                        break
+            if add_node:
+                unique_nodes.add(node)
+
+            node = conn.get_target_node()
+            add_node = True
+            if node.type == NodeTypes.OUTPUT:
+                for u in unique_nodes:
+                    if u.index == node.index:
+                        add_node = False
+                        node = u
+                        break
+            if add_node:
+                unique_nodes.add(node)
+
         unique_nodes = list(unique_nodes)
         input_size = len([n for n in unique_nodes if n.type == NodeTypes.INPUT])
         output_size = len([n for n in unique_nodes if n.type == NodeTypes.OUTPUT])
         nn = NN(input_size, output_size, act)
-        nn.connections = deepcopy(genes)
+        # nn.connections = deepcopy(genes)
         nn.nodes = []
+
         for conn in nn.connections:
             if conn.get_source_node() not in nn.nodes:
                 nn.nodes.append(conn.get_source_node())
