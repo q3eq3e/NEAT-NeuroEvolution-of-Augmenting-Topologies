@@ -14,10 +14,10 @@ class Node:
         self.bias = bias  # different behaviour than in the paper
         self.act = act
         self.layer = layer
+        self.connections = []
 
         # self.weights = []
         # self.inputs = []
-        self.connections = []
         # self.outputs = []
         self.out = out
         if self.type == NodeTypes.INPUT:

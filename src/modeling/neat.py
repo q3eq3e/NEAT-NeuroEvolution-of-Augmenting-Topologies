@@ -84,8 +84,9 @@ class NEAT:
                     innovation_number,
                     random.uniform(-mutation_range, mutation_range),
                 )
-                return
+                return True
             attempts += 1
+        return False
 
     def mutate_weights(
         self, genome: Genome, weight_mutation_rate=0.8, mutation_range=0.5
@@ -112,17 +113,24 @@ class NEAT:
         self.mutate_weights(genome, weight_mutation_rate, mutation_range)
 
         innovations = []
-        if random.random() < add_node_rate:
+
+        if random.random() < add_node_rate and len(genome.get_active_genes()) > 0:
             innovation_number = self.get_new_innovation_number()
             self.get_new_innovation_number()
-            self.mutate_add_node(genome, innovation_number) # w niektórych przypadkach wszystkie są disabled po crossingu
+            self.mutate_add_node(
+                genome, innovation_number
+            )  # w niektórych przypadkach wszystkie są disabled po crossingu
             innovations.append(genome.get_active_genes()[-2])
             innovations.append(genome.get_active_genes()[-1])
 
         if random.random() < add_connection_rate:
             innovation_number = self.get_new_innovation_number()
-            self.mutate_add_connection(genome, innovation_number, mutation_range=0.5)
-            innovations.append(genome.get_active_genes()[-1])
+            if self.mutate_add_connection(
+                genome, innovation_number, mutation_range=0.5
+            ):
+                innovations.append(genome.get_active_genes()[-1])
+            else:
+                self._innovation_number -= 1  # rollback if no connection was added
 
         return innovations
 
@@ -263,7 +271,7 @@ class NEAT:
         c2=1,
         c3=0.5,
         best_individuals_copied=3,
-        num_generations=50,
+        num_generations=25,
     ):
         for _ in tqdm(range(num_generations)):
             for genome in self.genomes:

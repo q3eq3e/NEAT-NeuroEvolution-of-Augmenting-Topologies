@@ -26,7 +26,8 @@ class NN:
 
     def create_from_genome(genes, act=sigmoid):
         unique_nodes = set()
-        genes = copy(genes)
+        genes = [copy(gene) for gene in genes]
+        # genes = copy(genes)
         for conn in genes:
             # unique_nodes.add(conn.get_source_node())
             # unique_nodes.add(conn.get_target_node())
@@ -36,11 +37,14 @@ class NN:
                 for u in unique_nodes:
                     if u.index == node.index:
                         add_node = False
-                        conn.source_node = u
+                        conn.from_node = u
                         break
             if add_node:
-                conn.source_node = copy(conn.get_source_node())
-                unique_nodes.add(conn.source_node)
+                conn.from_node = copy(conn.get_source_node())
+                for in_conn in conn.from_node.connections:
+                    raise ValueError("implement me")
+
+                unique_nodes.add(conn.from_node)
 
             node = conn.get_target_node()
             add_node = True
@@ -48,11 +52,12 @@ class NN:
                 for u in unique_nodes:
                     if u.index == node.index:
                         add_node = False
-                        conn.target_node = u
+                        conn.to_node = u
                         break
             if add_node:
-                conn.target_node = copy(conn.get_target_node())
-                unique_nodes.add(conn.target_node)
+                conn.to_node = copy(conn.get_target_node())
+                raise ValueError("implement me")
+                unique_nodes.add(conn.to_node)
 
         unique_nodes = list(unique_nodes)
         input_size = len([n for n in unique_nodes if n.type == NodeTypes.INPUT])
@@ -154,7 +159,7 @@ class NN:
         while i < len(self.nodes) and self.nodes[i].type == NodeTypes.INPUT:
             self.nodes[i].set_output(inputs[i])
             i += 1
-        for layer in range(0, self.nodes[-1].layer + 1):
+        for layer in range(1, self.nodes[-1].layer + 1):
             j = i
             outputs = []
             while i < len(self.nodes) and self.nodes[i].layer == layer:
