@@ -3,6 +3,7 @@ from src.modeling.genome import Genome
 from src.modeling.nn import NN
 from src.modeling.activation import sigmoid, identity
 from tqdm import tqdm
+from copy import copy, deepcopy
 
 
 class NEAT:
@@ -10,22 +11,17 @@ class NEAT:
         self,
         input_size,
         output_size,
-        population_size=100,
-        act=sigmoid,
     ):
         self.input_size = input_size
         self.output_size = output_size
-        self.population_size = population_size
-        self.act = act
-        self.initialize_population()
 
     def get_new_innovation_number(self):
         self._innovation_number += 1
         return self._innovation_number - 1
 
-    def initialize_population(self):
+    def initialize_population(self, size):
         self.genomes = []
-        for _ in range(self.population_size):
+        for _ in range(size):
             nn = NN(self.input_size, self.output_size, self.act)
             connections_nr = len(nn.connections)
             genome = Genome.create_from_nn(nn)
@@ -238,7 +234,10 @@ class NEAT:
 
             if copied_individuals > 0:
                 self.species[i].sort(key=lambda x: x.fitness, reverse=True)
-                offspring.extend(self.species[i][:copied_individuals])
+                # ojej ale tutaj blad, to wstawia do offspringa rodzicow bez robienia kopii
+                # offspring.extend(self.species[i][:copied_individuals])
+                for j in range(copied_individuals):
+                    offspring.append(deepcopy(self.species[i][j]))
 
             for _ in range(kids_per_species[i]):
                 parent1 = random.choice(self.species[i])
@@ -263,21 +262,33 @@ class NEAT:
     def train(
         self,
         evaluate,
-        weight_mutation_rate=0.8,
+        weight_mutation_rate=0.3,
         mutation_range=0.5,
         add_node_rate=0.03,
-        add_connection_rate=0.3,
+        add_connection_rate=0.03,
         compatibility_threshold=4.0,
         c1=1,
         c2=1,
         c3=3.0,
         best_individuals_copied=1,
         num_generations=50,
+        population_size=100,
+        act=sigmoid,
+        verbose=False,
     ):
-        for _ in tqdm(range(num_generations)):
+        self.act = act
+        self.best_per_epoch = []
+        self.species_per_epoch = []
+        self.initialize_population(population_size)
+        for _ in tqdm(range(num_generations), disable=not verbose):
             for genome in self.genomes:
                 genome.fitness = evaluate(genome)
-            print(f"Generation {_} completed. Best fitness: {self.get_best().fitness}")
+            self.best_per_epoch.append(copy(max(self.genomes, key=lambda x: x.fitness)))
+            self.species_per_epoch.append(self._get_species_sizes())
+            if verbose:
+                print(
+                    f"Generation {_} completed. Best fitness: {max(self.genomes, key=lambda x: x.fitness).fitness}"
+                )
             self.speciate(c1, c2, c3, compatibility_threshold)
             self.reproduce(best_individuals_copied)
             self.mutate_population(
@@ -286,11 +297,17 @@ class NEAT:
                 add_node_rate,
                 add_connection_rate,
             )
-        for genome in self.genomes:
-            genome.fitness = evaluate(genome)
+        # for genome in self.genomes:
+        #     genome.fitness = evaluate(genome)
 
     def get_best(self):
-        return max(self.genomes, key=lambda x: x.fitness)
+        return max(self.best_per_epoch, key=lambda x: x.fitness)
+
+    def _get_species_sizes(self):
+        return [len(s) for s in self.species]
+
+    def get_species_size_overtime(self):
+        return self.species_per_epoch
 
     def get_population(self):
         return self.genomes
