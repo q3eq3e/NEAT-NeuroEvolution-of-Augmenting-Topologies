@@ -24,7 +24,18 @@ class NN:
                     self.nodes[j], self.nodes[input_size + i], i * input_size + j
                 )
 
-    def create_from_genome(genes, act=sigmoid):
+    def create_from_parent(parent, infos, act=sigmoid):
+        nn = deepcopy(parent.get_nn())
+        nn.connections.sort(key=lambda conn: conn.innovation_number)
+        infos.sort(key=lambda info: info["innovation_number"])
+        for conn, info in zip(nn.connections, infos):
+            if conn.innovation_number == info["innovation_number"]:
+                conn.set_weight(info["weight"])
+                conn.enabled = info["enabled"]
+            else:
+                raise ValueError("you should not be here")
+        return nn
+
         unique_nodes = set()
         genes = [copy(gene) for gene in genes]
         # genes = copy(genes)
@@ -69,6 +80,8 @@ class NN:
 
         nn.nodes.sort(key=lambda node: node.layer)
         return nn
+
+        nn = deepcopy(genes)
 
     def get_nodes_indices(self):
         return [node.index for node in self.nodes]

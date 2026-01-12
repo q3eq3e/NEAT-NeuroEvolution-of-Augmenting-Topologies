@@ -10,7 +10,7 @@ class NEAT:
         self,
         input_size,
         output_size,
-        population_size=500,
+        population_size=100,
         act=sigmoid,
     ):
         self.input_size = input_size
@@ -36,11 +36,11 @@ class NEAT:
     def crossover(self, parent1: Genome, parent2: Genome) -> Genome:
         genes1 = {gene.innovation_number: gene for gene in parent1.get_genes()}
         genes2 = {gene.innovation_number: gene for gene in parent2.get_genes()}
-        equally_fit_parents = parent1.fitness == parent2.fitness
+        more_fit_parent = parent1 if parent1.fitness > parent2.fitness else parent2
         more_fit_parent_genes = genes1 if parent1.fitness > parent2.fitness else genes2
 
         child_genes = []
-        all_innovations = set(genes1.keys()).union(set(genes2.keys()))
+        all_innovations = sorted(set(genes1.keys()).union(set(genes2.keys())))
 
         for innovation in all_innovations:
             gene1 = genes1.get(innovation)
@@ -50,18 +50,18 @@ class NEAT:
             if gene1 and gene2:
                 chosen_gene = random.choice([gene1, gene2])
             else:
-                if equally_fit_parents:
-                    if gene1:
-                        chosen_gene = gene1
-                    else:
-                        chosen_gene = gene2
-                else:
-                    chosen_gene = more_fit_parent_gene
-                    if chosen_gene is None:
-                        continue
-            child_genes.append(chosen_gene)
+                chosen_gene = more_fit_parent_gene
+                if chosen_gene is None:
+                    continue
+            child_genes.append(
+                {
+                    "weight": chosen_gene.weight,
+                    "innovation_number": chosen_gene.innovation_number,
+                    "enabled": chosen_gene.enabled,
+                }
+            )
 
-        return Genome(child_genes)
+        return Genome(parent=more_fit_parent, info=child_genes)
 
     def mutate_add_node(self, genome: Genome, innovation_number: int) -> None:
         connection = random.choice(genome.get_active_genes())
@@ -258,20 +258,21 @@ class NEAT:
                         gene.innovation_number = innov.innovation_number
                         self._innovation_number -= 1
                         break
+        self._innovation_number += len(new_innovations)
 
     def train(
         self,
         evaluate,
-        weight_mutation_rate=0.4,
-        mutation_range=1.0,
-        add_node_rate=0.01,
-        add_connection_rate=0.01,
-        compatibility_threshold=1.5,
+        weight_mutation_rate=0.8,
+        mutation_range=0.5,
+        add_node_rate=0.03,
+        add_connection_rate=0.3,
+        compatibility_threshold=4.0,
         c1=1,
         c2=1,
-        c3=0.5,
-        best_individuals_copied=3,
-        num_generations=25,
+        c3=3.0,
+        best_individuals_copied=1,
+        num_generations=50,
     ):
         for _ in tqdm(range(num_generations)):
             for genome in self.genomes:
