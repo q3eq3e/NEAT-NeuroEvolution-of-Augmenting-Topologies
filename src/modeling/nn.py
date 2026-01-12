@@ -4,6 +4,7 @@ from src.modeling.node import NodeTypes
 # from src.modeling.node import Connection
 from src.modeling.activation import sigmoid, identity
 from copy import copy, deepcopy
+import random
 
 
 class NN:
@@ -21,7 +22,10 @@ class NN:
             # self.add_connection(self.nodes[0], self.nodes[input_size + i], i)
             for j in range(input_size):
                 self.add_connection(
-                    self.nodes[j], self.nodes[input_size + i], i * input_size + j
+                    self.nodes[j],
+                    self.nodes[input_size + i],
+                    i * input_size + j,
+                    weight=random.uniform(-1.0, 1.0),
                 )
 
     def create_from_parent(parent, infos, act=sigmoid):
@@ -99,8 +103,10 @@ class NN:
         return self.get_connection(from_node, to_node) is not None
 
     def add_connection(self, from_node, to_node, innovation_number, weight=1.0):
+        self._sanity_check()
         new_connection = to_node.add_input(from_node, weight, innovation_number)
         self.connections.append(new_connection)
+        self._sanity_check()
 
     # def remove_connection(self, from_node, to_node):
     #     to_node.rm_input(from_node)
@@ -123,6 +129,7 @@ class NN:
             len(self.nodes), NodeTypes.HIDDEN, bias, act, new_node_layer, out
         )
         removed_weight = connection.get_weight()
+        self.nodes.append(new_node)
         self.add_connection(
             connection.get_source_node(), new_node, innovation, weight=1.0
         )
@@ -133,7 +140,6 @@ class NN:
             weight=removed_weight,
         )
         self._remove_connection(connection)
-        self.nodes.append(new_node)
         self.nodes.sort(key=lambda node: node.layer)
 
     def _adjust_layers(self, connection_from, connection_to):
@@ -267,3 +273,12 @@ class NN:
             canvas[n["y"]][n["x"]] = str(i)
 
         return "\n".join("".join(row) for row in canvas)
+
+    def _sanity_check(self):
+        for n in self.nodes:
+            for inp_conn in n.connections:
+                if inp_conn not in self.connections:
+                    raise ValueError("rozbieznosc miedzy nodami a krawedziami")
+        for conn in self.connections:
+            if conn.from_node not in self.nodes or conn.to_node not in self.nodes:
+                raise ValueError("rozbieznosc miedzy nodami a krawedziami")
