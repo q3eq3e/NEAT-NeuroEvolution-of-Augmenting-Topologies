@@ -1,8 +1,9 @@
 import random
 from src.modeling.genome import Genome
 from src.modeling.nn import NN
-from src.modeling.activation import sigmoid, identity
+from src.modeling.activation import sigmoid, identity, relu
 from tqdm import tqdm
+from copy import deepcopy
 
 
 class NEAT:
@@ -10,7 +11,7 @@ class NEAT:
         self,
         input_size,
         output_size,
-        population_size=50,
+        population_size=100,
         act=sigmoid,
     ):
         self.input_size = input_size
@@ -112,27 +113,17 @@ class NEAT:
     ) -> None:
         self.mutate_weights(genome, weight_mutation_rate, mutation_range)
 
-        innovations = []
-
         if random.random() < add_node_rate and len(genome.get_active_genes()) > 0:
             innovation_number = self.get_new_innovation_number()
             self.get_new_innovation_number()
-            self.mutate_add_node(
-                genome, innovation_number
-            )  # w niektórych przypadkach wszystkie są disabled po crossingu
-            innovations.append(genome.get_active_genes()[-2])
-            innovations.append(genome.get_active_genes()[-1])
+            self.mutate_add_node(genome, innovation_number)
 
         if random.random() < add_connection_rate:
             innovation_number = self.get_new_innovation_number()
-            if self.mutate_add_connection(
+            if not self.mutate_add_connection(
                 genome, innovation_number, mutation_range=0.5
             ):
-                innovations.append(genome.get_active_genes()[-1])
-            else:
                 self._innovation_number -= 1  # rollback if no connection was added
-
-        return innovations
 
     def mutate_population(
         self,
@@ -141,17 +132,14 @@ class NEAT:
         add_node_rate: float,
         add_connection_rate: float,
     ):
-        new_innovations = set()
         for genome in self.genomes:
-            innovations = self._mutate(
+            self._mutate(
                 genome,
                 weight_mutation_rate,
                 mutation_range,
                 add_node_rate,
                 add_connection_rate,
             )
-            new_innovations.update(innovations)
-        self._adjust_innovations(new_innovations)
 
     def delta(self, genome1, genome2, c1: float, c2: float, c3: float):
         genes1 = {gene.innovation_number: gene for gene in genome1.get_genes()}
@@ -244,40 +232,33 @@ class NEAT:
 
             if copied_individuals > 0:
                 self.species[i].sort(key=lambda x: x.fitness, reverse=True)
-                offspring.extend(self.species[i][:copied_individuals])
+                offspring.extend(deepcopy(self.species[i][:copied_individuals]))
 
             for _ in range(kids_per_species[i]):
                 parent1 = random.choice(self.species[i])
                 parent2 = random.choice(self.species[i])
-                child = self.crossover(parent1, parent2)
+                child = None
+                if parent1 == parent2:
+                    child = deepcopy(parent1)
+                else:
+                    child = self.crossover(parent1, parent2)
                 offspring.append(child)
 
         self.genomes = offspring
-
-    def _adjust_innovations(self, new_innovations: set):
-        for genome in self.genomes:
-            for i, gene in enumerate(genome.get_genes()[::-1]):
-                if i == 3:
-                    break  # at max only last 3 genes are new
-                for innov in new_innovations:
-                    if gene == innov:
-                        gene.innovation_number = innov.innovation_number
-                        self._innovation_number -= 1
-                        break
-
+        
     def train(
         self,
         evaluate,
-        weight_mutation_rate=0.4,
-        mutation_range=1.0,
+        weight_mutation_rate=0.8,
+        mutation_range=0.05,
         add_node_rate=0.01,
-        add_connection_rate=0.01,
-        compatibility_threshold=1.5,
+        add_connection_rate=0.02,
+        compatibility_threshold=0.8,
         c1=1,
         c2=1,
-        c3=0.5,
-        best_individuals_copied=2,
-        num_generations=50,
+        c3=5,
+        best_individuals_copied=0.3,
+        num_generations=100,
     ):
         for _ in tqdm(range(num_generations)):
             for genome in self.genomes:

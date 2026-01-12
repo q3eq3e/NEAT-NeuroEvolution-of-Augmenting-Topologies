@@ -45,14 +45,8 @@ class Environment:
             action = model.predict(observation)
             if action_type == self.ActionType.DISCRETE:
                 action = np.argmax(action)
-            elif action_type == self.ActionType.CONTINUOUS:
-                action = (
-                    action * (self.env.action_space.high - self.env.action_space.low)
-                    + self.env.action_space.low
-                )
-                action = np.clip(
-                    action, self.env.action_space.low, self.env.action_space.high
-                )
+            # elif action_type == self.ActionType.CONTINUOUS:
+            #     action = clip(action, self.env.action_space.low, self.env.action_space.high)
             observation, reward, terminated, truncated, _ = self.env.step(action)
             total_reward += reward
             if store_gif:
