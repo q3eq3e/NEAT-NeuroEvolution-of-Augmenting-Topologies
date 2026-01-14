@@ -1,9 +1,7 @@
 from src.modeling.node import Node
 from src.modeling.node import NodeTypes
-
-# from src.modeling.node import Connection
 from src.modeling.activation import sigmoid, identity
-from copy import copy, deepcopy
+from copy import deepcopy
 import random
 
 
@@ -11,15 +9,14 @@ class NN:
     def __init__(self, input_size, output_size, act=sigmoid):
         self.input_size = input_size
         self.output_size = output_size
+        self.act = act
         self.connections = []
         self.nodes = []
         for i in range(input_size):
             self.nodes.append(Node(i, NodeTypes.INPUT, 0.0, identity, 0))
         for i in range(output_size):
-            self.nodes.append(Node(input_size + i, NodeTypes.OUTPUT, 0.0, act, 1))
-        self.act = act
+            self.nodes.append(Node(input_size + i, NodeTypes.OUTPUT, 0.0, sigmoid, 1))
         for i in range(output_size):
-            # self.add_connection(self.nodes[0], self.nodes[input_size + i], i)
             for j in range(input_size):
                 self.add_connection(
                     self.nodes[j],
@@ -28,7 +25,7 @@ class NN:
                     weight=random.uniform(-1.0, 1.0),
                 )
 
-    def create_from_parent(parent, infos, act=sigmoid):
+    def create_from_parent(parent, infos):
         nn = deepcopy(parent.get_nn())
         nn.connections.sort(key=lambda conn: conn.innovation_number)
         infos.sort(key=lambda info: info["innovation_number"])
@@ -39,53 +36,6 @@ class NN:
             else:
                 raise ValueError("you should not be here")
         return nn
-
-        unique_nodes = set()
-        genes = [copy(gene) for gene in genes]
-        # genes = copy(genes)
-        for conn in genes:
-            # unique_nodes.add(conn.get_source_node())
-            # unique_nodes.add(conn.get_target_node())
-            node = conn.get_source_node()
-            add_node = True
-            if node.type == NodeTypes.INPUT or node.type == NodeTypes.OUTPUT:
-                for u in unique_nodes:
-                    if u.index == node.index:
-                        add_node = False
-                        conn.from_node = u
-                        break
-            if add_node:
-                conn.from_node = copy(conn.get_source_node())
-                for in_conn in conn.from_node.connections:
-                    raise ValueError("implement me")
-
-                unique_nodes.add(conn.from_node)
-
-            node = conn.get_target_node()
-            add_node = True
-            if node.type == NodeTypes.OUTPUT:
-                for u in unique_nodes:
-                    if u.index == node.index:
-                        add_node = False
-                        conn.to_node = u
-                        break
-            if add_node:
-                conn.to_node = copy(conn.get_target_node())
-                raise ValueError("implement me")
-                unique_nodes.add(conn.to_node)
-
-        unique_nodes = list(unique_nodes)
-        input_size = len([n for n in unique_nodes if n.type == NodeTypes.INPUT])
-        output_size = len([n for n in unique_nodes if n.type == NodeTypes.OUTPUT])
-        nn = NN(input_size, output_size, act)
-        nn.nodes = unique_nodes
-        nn.connections = genes
-        # print(len([n for n in nn.nodes if n.type == NodeTypes.OUTPUT]))
-
-        nn.nodes.sort(key=lambda node: node.layer)
-        return nn
-
-        nn = deepcopy(genes)
 
     def get_nodes_indices(self):
         return [node.index for node in self.nodes]
@@ -103,17 +53,11 @@ class NN:
         return self.get_connection(from_node, to_node) is not None
 
     def add_connection(self, from_node, to_node, innovation_number, weight=1.0):
-        self._sanity_check()
         new_connection = to_node.add_input(from_node, weight, innovation_number)
         self.connections.append(new_connection)
-        self._sanity_check()
-
-    # def remove_connection(self, from_node, to_node):
-    #     to_node.rm_input(from_node)
 
     def _remove_connection(self, connection):
         connection.disable()
-        # connection.get_target_node().rm_input(connection.get_source_node())
 
     def active_connections(self):
         return [conn for conn in self.connections if conn.enabled]
@@ -182,9 +126,6 @@ class NN:
             j = i
             outputs = []
             while i < len(self.nodes) and self.nodes[i].layer == layer:
-                # if layer == self.nodes[-1].layer:
-                #     print(self.nodes[i])
-                #     print(self.nodes[i].calculate_output())
                 outputs.append(self.nodes[i].calculate_output())
                 i += 1
             for k, node in enumerate(self.nodes[j:i]):
@@ -219,7 +160,7 @@ class NN:
 
         canvas = [[" " for _ in range(W)] for _ in range(H)]
 
-        # rysowanie krawędzi
+        # edge drawing
         for conn in self.active_connections():
             src = conn.get_source_node()
             dst = conn.get_target_node()
@@ -259,26 +200,16 @@ class NN:
                         canvas[y][x] = "\\"
                     else:
                         canvas[y][x] = "/"
-                # rysowanie grotu strzałki
+
                 x2 = x1 + dx * (steps - 1) // steps
                 y2 = y1 + dy * (steps - 1) // steps
 
             x2 = round(x2)
             y2 = round(y2)
-            # grot strzałki
+            # arrow direction
             canvas[y2][x2] = "●"
 
-        # rysowanie neuronów
         for i, n in enumerate(pos_neurons):
             canvas[n["y"]][n["x"]] = str(i)
 
         return "\n".join("".join(row) for row in canvas)
-
-    def _sanity_check(self):
-        for n in self.nodes:
-            for inp_conn in n.connections:
-                if inp_conn not in self.connections:
-                    raise ValueError("rozbieznosc miedzy nodami a krawedziami")
-        for conn in self.connections:
-            if conn.from_node not in self.nodes or conn.to_node not in self.nodes:
-                raise ValueError("rozbieznosc miedzy nodami a krawedziami")

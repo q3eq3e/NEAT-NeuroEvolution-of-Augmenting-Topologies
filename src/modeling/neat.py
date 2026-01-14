@@ -1,9 +1,9 @@
 import random
 from src.modeling.genome import Genome
 from src.modeling.nn import NN
-from src.modeling.activation import sigmoid, identity
+from src.modeling.activation import sigmoid
 from tqdm import tqdm
-from copy import copy, deepcopy
+from copy import deepcopy
 
 
 class NEAT:
@@ -64,8 +64,8 @@ class NEAT:
         genome.nn.add_node(connection, innovation_number)
 
     def mutate_add_connection(
-        self, genome: Genome, innovation_number: int, mutation_range: float = 1.0
-    ) -> None:
+        self, genome: Genome, innovation_number: int, mutation_range: float
+    ):
         nodes = genome.nn.nodes
 
         max_attempts = 100
@@ -85,7 +85,7 @@ class NEAT:
         return False
 
     def mutate_weights(
-        self, genome: Genome, weight_mutation_rate=0.8, mutation_range=0.5
+        self, genome: Genome, weight_mutation_rate: float, mutation_range: float
     ) -> None:
         for gene in genome.get_active_genes():
             if random.random() < weight_mutation_rate:
@@ -94,62 +94,49 @@ class NEAT:
                 )
         # bias mutation
         for node in genome.get_nn().nodes:
-            if not node.is_input_node():
+            if not node.is_input_node() and not node.is_output_node():
                 if random.random() < weight_mutation_rate:
                     node.bias += random.uniform(-mutation_range, mutation_range)
 
     def _mutate(
         self,
         genome: Genome,
-        weight_mutation_rate=0.8,
-        mutation_range=0.5,
-        add_node_rate=0.05,
-        add_connection_rate=0.05,
+        weight_mutation_rate: float,
+        mutation_range: float,
+        add_node_rate: float,
+        add_connection_rate: float,
     ) -> None:
         self.mutate_weights(genome, weight_mutation_rate, mutation_range)
-
-        innovations = []
 
         if random.random() < add_node_rate and len(genome.get_active_genes()) > 0:
             innovation_number = self.get_new_innovation_number()
             self.get_new_innovation_number()
-            self.mutate_add_node(
-                genome, innovation_number
-            )  # w niektórych przypadkach wszystkie są disabled po crossingu
-            innovations.append(genome.get_active_genes()[-2])
-            innovations.append(genome.get_active_genes()[-1])
+            self.mutate_add_node(genome, innovation_number)
 
         if random.random() < add_connection_rate:
             innovation_number = self.get_new_innovation_number()
-            if self.mutate_add_connection(
+            if not self.mutate_add_connection(
                 genome, innovation_number, mutation_range=0.5
             ):
-                innovations.append(genome.get_active_genes()[-1])
-            else:
                 self._innovation_number -= 1  # rollback if no connection was added
-
-        return innovations
 
     def mutate_population(
         self,
-        weight_mutation_rate=0.8,
-        mutation_range=0.5,
-        add_node_rate=0.05,
-        add_connection_rate=0.05,
+        weight_mutation_rate: float,
+        mutation_range: float,
+        add_node_rate: float,
+        add_connection_rate: float,
     ):
-        new_innovations = set()
         for genome in self.genomes:
-            innovations = self._mutate(
+            self._mutate(
                 genome,
                 weight_mutation_rate,
                 mutation_range,
                 add_node_rate,
                 add_connection_rate,
             )
-            new_innovations.update(innovations)
-        self._adjust_innovations(new_innovations)
 
-    def delta(self, genome1, genome2, c1=1.0, c2=1.0, c3=0.4):
+    def delta(self, genome1, genome2, c1: float, c2: float, c3: float):
         genes1 = {gene.innovation_number: gene for gene in genome1.get_genes()}
         genes2 = {gene.innovation_number: gene for gene in genome2.get_genes()}
 
@@ -176,7 +163,13 @@ class NEAT:
             W /= intersections
         return (c1 * E / N) + (c2 * D / N) + c3 * W
 
-    def speciate(self, c1=1.0, c2=1.0, c3=0.4, compatibility_threshold=3.0):
+    def speciate(
+        self,
+        c1: float,
+        c2: float,
+        c3: float,
+        compatibility_threshold: float,
+    ):
         new_species = [[] for _ in range(len(self.species))]
         representatives = [random.choice(s) for s in self.species if s]
         for genome in self.genomes:
@@ -206,16 +199,14 @@ class NEAT:
         if avg_fitness == 0:
             return [len(species) for species in self.species]
 
-        kids_per_species = [
-            max(int(sf / avg_fitness), 0) for sf in species_fitness
-        ]
+        kids_per_species = [max(int(sf / avg_fitness), 0) for sf in species_fitness]
         rest = len(self.genomes) - sum(kids_per_species)
         lucky_species = random.sample(range(len(kids_per_species)), rest)
         for ls in lucky_species:
             kids_per_species[ls] += 1
         return kids_per_species
 
-    def reproduce(self, best_individuals_copied=0.2):
+    def reproduce(self, best_individuals_copied: float):
         kids_per_species = self.determine_offspring()
         offspring = []
 
@@ -236,42 +227,31 @@ class NEAT:
 
             if copied_individuals > 0:
                 self.species[i].sort(key=lambda x: x.fitness, reverse=True)
-                # ojej ale tutaj blad, to wstawia do offspringa rodzicow bez robienia kopii
-                # offspring.extend(self.species[i][:copied_individuals])
-                for j in range(copied_individuals):
-                    offspring.append(deepcopy(self.species[i][j]))
+                offspring.extend(deepcopy(self.species[i][:copied_individuals]))
 
             for _ in range(kids_per_species[i]):
                 parent1 = random.choice(self.species[i])
                 parent2 = random.choice(self.species[i])
-                child = self.crossover(parent1, parent2)
+                child = None
+                if parent1 == parent2:
+                    child = deepcopy(parent1)
+                else:
+                    child = self.crossover(parent1, parent2)
                 offspring.append(child)
 
         self.genomes = offspring
-
-    def _adjust_innovations(self, new_innovations: set):
-        for genome in self.genomes:
-            for i, gene in enumerate(genome.get_genes()[::-1]):
-                if i == 3:
-                    break  # at max only last 3 genes are new
-                for innov in new_innovations:
-                    if gene == innov:
-                        gene.innovation_number = innov.innovation_number
-                        self._innovation_number -= 1
-                        break
-        self._innovation_number += len(new_innovations)
 
     def train(
         self,
         evaluate,
         weight_mutation_rate=0.3,
         mutation_range=0.5,
-        add_node_rate=0.03,
-        add_connection_rate=0.03,
-        compatibility_threshold=4.0,
-        c1=1,
-        c2=1,
-        c3=3.0,
+        add_node_rate=0.01,
+        add_connection_rate=0.01,
+        compatibility_threshold=3,
+        c1=0.5,
+        c2=2,
+        c3=2,
         best_individuals_copied=1,
         num_generations=50,
         population_size=100,
@@ -282,7 +262,7 @@ class NEAT:
         self.best_per_epoch = []
         self.species_per_epoch = []
         self.initialize_population(population_size)
-        for _ in tqdm(range(num_generations), disable=not verbose):
+        for epoch in tqdm(range(num_generations), disable=not verbose):
             for genome in self.genomes:
                 genome.fitness = evaluate(genome)
             self.best_per_epoch.append(
@@ -291,7 +271,7 @@ class NEAT:
             self.species_per_epoch.append(self._get_species_sizes())
             if verbose:
                 print(
-                    f"Generation {_} completed. Best fitness: {max(self.genomes, key=lambda x: x.fitness).fitness}"
+                    f"Generation {epoch} completed. Best fitness: {max(self.genomes, key=lambda x: x.fitness).fitness}"
                 )
             self.speciate(c1, c2, c3, compatibility_threshold)
             self.reproduce(best_individuals_copied)
@@ -301,8 +281,6 @@ class NEAT:
                 add_node_rate,
                 add_connection_rate,
             )
-        # for genome in self.genomes:
-        #     genome.fitness = evaluate(genome)
 
     def get_best(self):
         return max(self.best_per_epoch, key=lambda x: x.fitness)
@@ -312,6 +290,3 @@ class NEAT:
 
     def get_species_size_overtime(self):
         return self.species_per_epoch
-
-    def get_population(self):
-        return self.genomes
