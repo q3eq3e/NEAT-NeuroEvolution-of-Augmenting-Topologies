@@ -35,6 +35,10 @@ ENV_NAME=CartPole-v1
 
 [README](./docs/README.md)
 
+## Model w akcji
+
+[README](./reports/README.md)
+
 ## Szczegóły zadania
 
 [descritpion](./description.md)
