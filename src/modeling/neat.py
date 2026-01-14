@@ -1,7 +1,7 @@
 import random
 from src.modeling.genome import Genome
 from src.modeling.nn import NN
-from src.modeling.activation import sigmoid, identity, relu
+from src.modeling.activation import sigmoid
 from tqdm import tqdm
 from copy import deepcopy
 
@@ -11,22 +11,17 @@ class NEAT:
         self,
         input_size,
         output_size,
-        population_size=100,
-        act=sigmoid,
     ):
         self.input_size = input_size
         self.output_size = output_size
-        self.population_size = population_size
-        self.act = act
-        self.initialize_population()
 
     def get_new_innovation_number(self):
         self._innovation_number += 1
         return self._innovation_number - 1
 
-    def initialize_population(self):
+    def initialize_population(self, size):
         self.genomes = []
-        for _ in range(self.population_size):
+        for _ in range(size):
             nn = NN(self.input_size, self.output_size, self.act)
             connections_nr = len(nn.connections)
             genome = Genome.create_from_nn(nn)
@@ -37,11 +32,11 @@ class NEAT:
     def crossover(self, parent1: Genome, parent2: Genome) -> Genome:
         genes1 = {gene.innovation_number: gene for gene in parent1.get_genes()}
         genes2 = {gene.innovation_number: gene for gene in parent2.get_genes()}
-        equally_fit_parents = parent1.fitness == parent2.fitness
+        more_fit_parent = parent1 if parent1.fitness > parent2.fitness else parent2
         more_fit_parent_genes = genes1 if parent1.fitness > parent2.fitness else genes2
 
         child_genes = []
-        all_innovations = set(genes1.keys()).union(set(genes2.keys()))
+        all_innovations = sorted(set(genes1.keys()).union(set(genes2.keys())))
 
         for innovation in all_innovations:
             gene1 = genes1.get(innovation)
@@ -51,18 +46,18 @@ class NEAT:
             if gene1 and gene2:
                 chosen_gene = random.choice([gene1, gene2])
             else:
-                if equally_fit_parents:
-                    if gene1:
-                        chosen_gene = gene1
-                    else:
-                        chosen_gene = gene2
-                else:
-                    chosen_gene = more_fit_parent_gene
-                    if chosen_gene is None:
-                        continue
-            child_genes.append(chosen_gene)
+                chosen_gene = more_fit_parent_gene
+                if chosen_gene is None:
+                    continue
+            child_genes.append(
+                {
+                    "weight": chosen_gene.weight,
+                    "innovation_number": chosen_gene.innovation_number,
+                    "enabled": chosen_gene.enabled,
+                }
+            )
 
-        return Genome(child_genes)
+        return Genome(parent=more_fit_parent, info=child_genes)
 
     def mutate_add_node(self, genome: Genome, innovation_number: int) -> None:
         connection = random.choice(genome.get_active_genes())
@@ -99,7 +94,7 @@ class NEAT:
                 )
         # bias mutation
         for node in genome.get_nn().nodes:
-            if not node.is_input_node():
+            if not node.is_input_node() and not node.is_output_node():
                 if random.random() < weight_mutation_rate:
                     node.bias += random.uniform(-mutation_range, mutation_range)
 
@@ -204,7 +199,7 @@ class NEAT:
         if avg_fitness == 0:
             return [len(species) for species in self.species]
 
-        kids_per_species = [int(sf / avg_fitness) for sf in species_fitness]
+        kids_per_species = [max(int(sf / avg_fitness), 0) for sf in species_fitness]
         rest = len(self.genomes) - sum(kids_per_species)
         lucky_species = random.sample(range(len(kids_per_species)), rest)
         for ls in lucky_species:
@@ -249,25 +244,37 @@ class NEAT:
     def train(
         self,
         evaluate,
-        weight_mutation_rate=0.8,
-        mutation_range=0.05,
+        weight_mutation_rate=0.3,
+        mutation_range=0.5,
         add_node_rate=0.01,
-        add_connection_rate=0.02,
-        compatibility_threshold=0.8,
-        c1=1,
-        c2=1,
-        c3=5,
-        best_individuals_copied=0.3,
-        num_generations=100,
+        add_connection_rate=0.01,
+        compatibility_threshold=3,
+        c1=0.5,
+        c2=2,
+        c3=2,
+        best_individuals_copied=1,
+        num_generations=50,
+        population_size=100,
+        act=sigmoid,
+        verbose=False,
         callbacks=None,
     ):
+        self.act = act
+        self.best_per_epoch = []
+        self.species_per_epoch = []
+        self.initialize_population(population_size)
         callbacks = callbacks or []
-        for iter in tqdm(range(num_generations)):
+        for epoch in tqdm(range(num_generations), disable=not verbose):
             for genome in self.genomes:
                 genome.fitness = evaluate(genome)
-            print(
-                f"Generation {iter} completed. Best fitness: {self.get_best().fitness}"
+            self.best_per_epoch.append(
+                deepcopy(max(self.genomes, key=lambda x: x.fitness))
             )
+            self.species_per_epoch.append(self._get_species_sizes())
+            if verbose:
+                print(
+                    f"Generation {epoch} completed. Best fitness: {max(self.genomes, key=lambda x: x.fitness).fitness}"
+                )
             self.speciate(c1, c2, c3, compatibility_threshold)
             self.reproduce(best_individuals_copied)
             self.mutate_population(
@@ -276,7 +283,6 @@ class NEAT:
                 add_node_rate,
                 add_connection_rate,
             )
-
             if callbacks:
                 stats = {
                     "fitness": self.get_best().fitness,
@@ -285,11 +291,11 @@ class NEAT:
             for callback in callbacks:
                 callback.log(iter, stats)
 
-        for genome in self.genomes:
-            genome.fitness = evaluate(genome)
-
     def get_best(self):
-        return max(self.genomes, key=lambda x: x.fitness)
+        return max(self.best_per_epoch, key=lambda x: x.fitness)
 
-    def get_population(self):
-        return self.genomes
+    def _get_species_sizes(self):
+        return [len(s) for s in self.species]
+
+    def get_species_size_overtime(self):
+        return self.species_per_epoch
