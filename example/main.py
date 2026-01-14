@@ -57,7 +57,8 @@ if __name__ == "__main__":
         best = neat.get_best()
 
         with open(
-            f"{ENV_NAME}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl", "wb"
+            f"models/{ENV_NAME}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl",
+            "wb",
         ) as f:
             pickle.dump(best, f)
         with open("species.csv", "w", newline="") as f:

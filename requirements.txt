@@ -8,3 +8,6 @@ python-dotenv
 gymnasium
 pygame
 tqdm
+pickle
+datetime
+argparse
