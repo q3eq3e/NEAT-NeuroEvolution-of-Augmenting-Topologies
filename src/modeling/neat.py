@@ -4,22 +4,23 @@ from src.modeling.nn import NN
 from src.modeling.activation import sigmoid
 from tqdm import tqdm
 from copy import deepcopy
+from typing import Callable
 
 
 class NEAT:
     def __init__(
         self,
-        input_size,
-        output_size,
-    ):
+        input_size: int,
+        output_size: int,
+    ) -> None:
         self.input_size = input_size
         self.output_size = output_size
 
-    def get_new_innovation_number(self):
+    def get_new_innovation_number(self) -> int:
         self._innovation_number += 1
         return self._innovation_number - 1
 
-    def initialize_population(self, size):
+    def initialize_population(self, size: int) -> None:
         self.genomes = []
         for _ in range(size):
             nn = NN(self.input_size, self.output_size, self.act)
@@ -65,7 +66,7 @@ class NEAT:
 
     def mutate_add_connection(
         self, genome: Genome, innovation_number: int, mutation_range: float
-    ):
+    ) -> bool:
         nodes = genome.nn.nodes
 
         max_attempts = 100
@@ -126,7 +127,7 @@ class NEAT:
         mutation_range: float,
         add_node_rate: float,
         add_connection_rate: float,
-    ):
+    ) -> None:
         for genome in self.genomes:
             self._mutate(
                 genome,
@@ -136,7 +137,9 @@ class NEAT:
                 add_connection_rate,
             )
 
-    def delta(self, genome1, genome2, c1: float, c2: float, c3: float):
+    def delta(
+        self, genome1: Genome, genome2: Genome, c1: float, c2: float, c3: float
+    ) -> float:
         genes1 = {gene.innovation_number: gene for gene in genome1.get_genes()}
         genes2 = {gene.innovation_number: gene for gene in genome2.get_genes()}
 
@@ -169,7 +172,7 @@ class NEAT:
         c2: float,
         c3: float,
         compatibility_threshold: float,
-    ):
+    ) -> None:
         new_species = [[] for _ in range(len(self.species))]
         representatives = [random.choice(s) for s in self.species if s]
         for genome in self.genomes:
@@ -185,7 +188,7 @@ class NEAT:
                 representatives.append(genome)
         self.species = [s for s in new_species if s]
 
-    def determine_offspring(self):
+    def determine_offspring(self) -> list[int]:
         species_fitness = []
         global_fitness = 0
 
@@ -212,7 +215,7 @@ class NEAT:
             kids_per_species[ls] += 1
         return kids_per_species
 
-    def reproduce(self, best_individuals_copied: float):
+    def reproduce(self, best_individuals_copied: float) -> None:
         kids_per_species = self.determine_offspring()
         offspring = []
 
@@ -249,7 +252,7 @@ class NEAT:
 
     def train(
         self,
-        evaluate,
+        evaluate: Callable[["NEAT", bool], float],
         weight_mutation_rate=0.3,
         mutation_range=0.5,
         add_node_rate=0.01,
@@ -264,7 +267,7 @@ class NEAT:
         act=sigmoid,
         verbose=False,
         callbacks=None,
-    ):
+    ) -> None:
         self.act = act
         self.initialize_population(population_size)
         self.best_found = self.genomes[0]
@@ -296,8 +299,8 @@ class NEAT:
             for callback in callbacks:
                 callback.log(epoch, stats)
 
-    def get_best(self):
+    def get_best(self) -> Genome:
         return self.best_found
 
-    def _get_species_sizes(self):
+    def _get_species_sizes(self) -> list[int]:
         return [len(s) for s in self.species]

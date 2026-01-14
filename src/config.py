@@ -9,4 +9,4 @@ import os
 # Load environment variables from .env file if it exists
 load_dotenv()
 
-ENV_NAME = os.getenv("ENV_NAME", "MountainCarContinuous-v0")
+ENV_NAME = os.getenv("ENV_NAME", "Acrobot-v1")

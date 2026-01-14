@@ -1,12 +1,15 @@
-from src.modeling.node import Node
+from src.modeling.node import Node, Connection
 from src.modeling.node import NodeTypes
 from src.modeling.activation import sigmoid, identity
 from copy import deepcopy
+from typing import Callable, Optional
 import random
 
 
 class NN:
-    def __init__(self, input_size, output_size, act=sigmoid):
+    def __init__(
+        self, input_size: int, output_size: int, act: Callable[[float], float] = sigmoid
+    ) -> None:
         self.input_size = input_size
         self.output_size = output_size
         self.act = act
@@ -25,7 +28,8 @@ class NN:
                     weight=random.uniform(-1.0, 1.0),
                 )
 
-    def create_from_parent(parent, infos):
+    @staticmethod
+    def create_from_parent(parent, infos: dict) -> "NN":
         nn = deepcopy(parent.get_nn())
         nn.connections.sort(key=lambda conn: conn.innovation_number)
         infos.sort(key=lambda info: info["innovation_number"])
@@ -37,10 +41,10 @@ class NN:
                 raise ValueError("you should not be here")
         return nn
 
-    def get_nodes_indices(self):
+    def get_nodes_indices(self) -> list[int]:
         return [node.index for node in self.nodes]
 
-    def get_connection(self, from_node, to_node):
+    def get_connection(self, from_node: Node, to_node: Node) -> Connection:
         for conn in self.connections:
             if (
                 conn.get_source_node() == from_node
@@ -49,20 +53,28 @@ class NN:
                 return conn
         return None
 
-    def conn_exists(self, from_node, to_node):
+    def conn_exists(self, from_node: Node, to_node: Node) -> bool:
         return self.get_connection(from_node, to_node) is not None
 
-    def add_connection(self, from_node, to_node, innovation_number, weight=1.0):
+    def add_connection(
+        self,
+        from_node: Node,
+        to_node: Node,
+        innovation_number: int,
+        weight: float = 1.0,
+    ) -> None:
         new_connection = to_node.add_input(from_node, weight, innovation_number)
         self.connections.append(new_connection)
 
-    def _remove_connection(self, connection):
+    def _remove_connection(self, connection: Connection) -> None:
         connection.disable()
 
-    def active_connections(self):
+    def active_connections(self) -> list[Connection]:
         return [conn for conn in self.connections if conn.enabled]
 
-    def add_node(self, connection, innovation, act=None, bias=0.0, out=0.0):
+    def add_node(
+        self, connection: Connection, innovation: int, act=None, bias=0.0, out=0.0
+    ):
         if act is None:
             act = self.act
 

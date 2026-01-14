@@ -26,7 +26,7 @@ class Environment:
         elif isinstance(action_space, gym.spaces.Box):
             return observation_space.shape[0], action_space.shape[0]
 
-    def run_env(self, model, store_gif=False):
+    def run_env(self, model, store_gif: bool = False):
         observation, _ = self.env.reset(seed=self.seed)
 
         action_type = self.ActionType.OTHER
