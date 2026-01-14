@@ -57,7 +57,7 @@ class NEAT:
                 }
             )
 
-        return Genome(parent=more_fit_parent, info=child_genes)
+        return Genome.create_from_parent(more_fit_parent, child_genes)
 
     def mutate_add_node(self, genome: Genome, innovation_number: int) -> None:
         connection = random.choice(genome.get_active_genes())
