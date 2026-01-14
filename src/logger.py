@@ -22,3 +22,21 @@ class FitnessLogger(Logger):
         plt.xlabel("Generation")
         plt.ylabel("Fitness")
         plt.savefig(filepath)
+
+
+class SpeciesLogger(Logger):
+    def __init__(self):
+        self.records = []
+
+    def log(self, generation, stats):
+        self.records.append(stats["species"])
+
+    def get_logs(self):
+        return self.records
+
+    def save_to_csv(self, filepath):
+        import csv
+
+        with open(filepath, "w", newline="") as f:
+            writer = csv.writer(f, delimiter=";")
+            writer.writerows(self.records)

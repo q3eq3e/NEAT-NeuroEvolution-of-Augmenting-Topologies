@@ -13,7 +13,7 @@ from src.modeling.activation import sigmoid, tanh  # noqa: E402, F401
 from src.environment import Environment  # noqa: E402
 from src.environment import store_episode_as_gif  # noqa: E402
 from src.config import ENV_NAME  # noqa: E402
-from src.logger import FitnessLogger  # noqa: E402
+from src.logger import FitnessLogger, SpeciesLogger  # noqa: E402
 
 
 if __name__ == "__main__":
@@ -36,6 +36,7 @@ if __name__ == "__main__":
     else:
         neat = NEAT(*env.get_params_num())
         fit_log = FitnessLogger()
+        spec_log = SpeciesLogger()
         neat.train(
             env.run_env,
             weight_mutation_rate=0.3,
@@ -51,9 +52,12 @@ if __name__ == "__main__":
             population_size=1000,
             act=sigmoid,
             verbose=True,
-            callbacks=[fit_log],
+            callbacks=[fit_log, spec_log],
         )
+
         fit_log.save_chart_data("fitness_chart.png")
+        spec_log.save_to_csv("species.csv")
+
         best = neat.get_best()
 
         with open(
@@ -61,9 +65,6 @@ if __name__ == "__main__":
             "wb",
         ) as f:
             pickle.dump(best, f)
-        with open("species.csv", "w", newline="") as f:
-            writer = csv.writer(f, delimiter=";")
-            writer.writerows(neat.get_species_size_overtime())
 
     print(best)
     print(best.nn)
