@@ -1,6 +1,5 @@
 import os
 import sys
-import csv
 import pickle
 import datetime
 import argparse
@@ -47,9 +46,9 @@ if __name__ == "__main__":
             c1=0.5,
             c2=2,
             c3=2,
-            best_individuals_copied=1,
-            num_generations=2,
-            population_size=1000,
+            best_individuals_copied=0.1,
+            num_generations=100,
+            population_size=2000,
             act=sigmoid,
             verbose=True,
             callbacks=[fit_log, spec_log],

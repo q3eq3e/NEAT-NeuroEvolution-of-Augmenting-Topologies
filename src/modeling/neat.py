@@ -57,7 +57,7 @@ class NEAT:
                 }
             )
 
-        return Genome(parent=more_fit_parent, info=child_genes)
+        return Genome.create_from_parent(more_fit_parent, child_genes)
 
     def mutate_add_node(self, genome: Genome, innovation_number: int) -> None:
         connection = random.choice(genome.get_active_genes())
@@ -195,7 +195,10 @@ class NEAT:
                 global_fitness += genome.fitness
                 species_fitness[-1] += genome.fitness
 
-        avg_fitness = global_fitness / len(self.genomes)
+        min_fitness = min(genome.fitness for genome in self.genomes) + 0.001
+        avg_fitness = global_fitness / len(self.genomes) + min_fitness
+        species_fitness = [sf + min_fitness*len(species) for sf, species in zip(species_fitness, self.species)]
+
         if avg_fitness == 0:
             return [len(species) for species in self.species]
 
@@ -260,17 +263,15 @@ class NEAT:
         callbacks=None,
     ):
         self.act = act
-        self.best_per_epoch = []
-        # self.species_per_epoch = []
         self.initialize_population(population_size)
+        self.best_found = self.genomes[0]
         callbacks = callbacks or []
         for epoch in tqdm(range(num_generations), disable=not verbose):
             for genome in self.genomes:
                 genome.fitness = evaluate(genome)
-            self.best_per_epoch.append(
-                deepcopy(max(self.genomes, key=lambda x: x.fitness))
-            )
-            # self.species_per_epoch.append(self._get_species_sizes())
+            best_in_epoch = max(self.genomes, key=lambda x: x.fitness)
+            if best_in_epoch.fitness > self.best_found.fitness:
+                self.best_found = deepcopy(best_in_epoch)
             if verbose:
                 print(
                     f"Generation {epoch} completed. Best fitness: {max(self.genomes, key=lambda x: x.fitness).fitness}"
@@ -293,7 +294,7 @@ class NEAT:
                 callback.log(epoch, stats)
 
     def get_best(self):
-        return max(self.best_per_epoch, key=lambda x: x.fitness)
+        return self.best_found
 
     def _get_species_sizes(self):
         return [len(s) for s in self.species]
