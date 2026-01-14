@@ -206,7 +206,9 @@ class NEAT:
         if avg_fitness == 0:
             return [len(species) for species in self.species]
 
-        kids_per_species = [int(sf / avg_fitness) for sf in species_fitness]
+        kids_per_species = [
+            max(int(sf / avg_fitness), 0) for sf in species_fitness
+        ]
         rest = len(self.genomes) - sum(kids_per_species)
         lucky_species = random.sample(range(len(kids_per_species)), rest)
         for ls in lucky_species:
@@ -283,7 +285,9 @@ class NEAT:
         for _ in tqdm(range(num_generations), disable=not verbose):
             for genome in self.genomes:
                 genome.fitness = evaluate(genome)
-            self.best_per_epoch.append(copy(max(self.genomes, key=lambda x: x.fitness)))
+            self.best_per_epoch.append(
+                deepcopy(max(self.genomes, key=lambda x: x.fitness))
+            )
             self.species_per_epoch.append(self._get_species_sizes())
             if verbose:
                 print(

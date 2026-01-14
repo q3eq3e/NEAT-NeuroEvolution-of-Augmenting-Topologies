@@ -94,8 +94,8 @@ if __name__ == "__main__":
             c2=2,
             c3=2,
             best_individuals_copied=1,
-            num_generations=200,
-            population_size=2000,
+            num_generations=50,
+            population_size=500,
             verbose=True,
         )
         best = neat.get_best()

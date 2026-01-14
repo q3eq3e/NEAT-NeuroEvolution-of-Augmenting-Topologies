@@ -54,7 +54,6 @@ class Environment:
                     action, self.env.action_space.low, self.env.action_space.high
                 )
             observation, reward, terminated, truncated, _ = self.env.step(action)
-            observation[2] /= 8  # because last observation has wider range
             total_reward += reward
             if store_gif:
                 frames.append(self.env.render())
