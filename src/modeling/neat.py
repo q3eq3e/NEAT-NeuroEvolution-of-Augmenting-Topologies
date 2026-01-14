@@ -195,7 +195,10 @@ class NEAT:
                 global_fitness += genome.fitness
                 species_fitness[-1] += genome.fitness
 
-        avg_fitness = global_fitness / len(self.genomes)
+        min_fitness = min(genome.fitness for genome in self.genomes) + 0.001
+        avg_fitness = global_fitness / len(self.genomes) + min_fitness
+        species_fitness = [sf + min_fitness*len(species) for sf, species in zip(species_fitness, self.species)]
+
         if avg_fitness == 0:
             return [len(species) for species in self.species]
 
