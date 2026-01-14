@@ -245,7 +245,7 @@ class NEAT:
                 offspring.append(child)
 
         self.genomes = offspring
-        
+
     def train(
         self,
         evaluate,
@@ -259,11 +259,15 @@ class NEAT:
         c3=5,
         best_individuals_copied=0.3,
         num_generations=100,
+        callbacks=None,
     ):
-        for _ in tqdm(range(num_generations)):
+        callbacks = callbacks or []
+        for iter in tqdm(range(num_generations)):
             for genome in self.genomes:
                 genome.fitness = evaluate(genome)
-            print(f"Generation {_} completed. Best fitness: {self.get_best().fitness}")
+            print(
+                f"Generation {iter} completed. Best fitness: {self.get_best().fitness}"
+            )
             self.speciate(c1, c2, c3, compatibility_threshold)
             self.reproduce(best_individuals_copied)
             self.mutate_population(
@@ -272,6 +276,15 @@ class NEAT:
                 add_node_rate,
                 add_connection_rate,
             )
+
+            if callbacks:
+                stats = {
+                    "fitness": self.get_best().fitness,
+                }
+
+            for callback in callbacks:
+                callback.log(iter, stats)
+
         for genome in self.genomes:
             genome.fitness = evaluate(genome)
 
