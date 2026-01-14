@@ -260,17 +260,15 @@ class NEAT:
         callbacks=None,
     ):
         self.act = act
-        self.best_per_epoch = []
-        # self.species_per_epoch = []
         self.initialize_population(population_size)
+        self.best_found = self.genomes[0]
         callbacks = callbacks or []
         for epoch in tqdm(range(num_generations), disable=not verbose):
             for genome in self.genomes:
                 genome.fitness = evaluate(genome)
-            self.best_per_epoch.append(
-                deepcopy(max(self.genomes, key=lambda x: x.fitness))
-            )
-            # self.species_per_epoch.append(self._get_species_sizes())
+            best_in_epoch = max(self.genomes, key=lambda x: x.fitness)
+            if best_in_epoch.fitness > self.best_found.fitness:
+                self.best_found = deepcopy(best_in_epoch)
             if verbose:
                 print(
                     f"Generation {epoch} completed. Best fitness: {max(self.genomes, key=lambda x: x.fitness).fitness}"
@@ -293,7 +291,7 @@ class NEAT:
                 callback.log(epoch, stats)
 
     def get_best(self):
-        return max(self.best_per_epoch, key=lambda x: x.fitness)
+        return self.best_found
 
     def _get_species_sizes(self):
         return [len(s) for s in self.species]
