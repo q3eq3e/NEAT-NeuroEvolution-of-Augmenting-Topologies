@@ -1,6 +1,6 @@
 # Dokumentacja projektu NEAT
 
-Witaj w dokumentacji projektu implementującego algorytm **NEAT (NeuroEvolution of Augmenting Topologies)**.
+Autorzy: Jakub Bagiński, Maciej Borkowski, Patryk Skręta
 
 ## Szybki start
 

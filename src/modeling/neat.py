@@ -24,7 +24,7 @@ class NEAT:
         for _ in range(size):
             nn = NN(self.input_size, self.output_size, self.act)
             connections_nr = len(nn.connections)
-            genome = Genome.create_from_nn(nn)
+            genome = Genome(nn)
             self.genomes.append(genome)
         self._innovation_number = connections_nr
         self.species = [self.genomes]
@@ -197,7 +197,10 @@ class NEAT:
 
         min_fitness = min(genome.fitness for genome in self.genomes) + 0.001
         avg_fitness = global_fitness / len(self.genomes) + min_fitness
-        species_fitness = [sf + min_fitness*len(species) for sf, species in zip(species_fitness, self.species)]
+        species_fitness = [
+            sf + min_fitness * len(species)
+            for sf, species in zip(species_fitness, self.species)
+        ]
 
         if avg_fitness == 0:
             return [len(species) for species in self.species]

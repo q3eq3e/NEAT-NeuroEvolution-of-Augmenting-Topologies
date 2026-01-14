@@ -180,21 +180,19 @@ Reprezentuje genotyp - genetyczną reprezentację sieci neuronowej.
 - `nn`: Odniesienie do obiektu NN (fenotyp)
 - `_genes`: Lista połączeń (geny)
 
-**Konstruktor:**
-Obsługuje dwa tryby tworzenia:
-1. **Z rodzica**: `Genome(parent=parent_genome, info=mutation_info)`
-2. **Z istniejącej sieci**: `Genome(genes=connections, nn=neural_network)`
+**Konstruktor:** `Genome(nn)`
+Tworzy genom wskazujący na istniejący już obiekt NN (bez kopiowania):
 
 **Kluczowe metody:**
 
-##### `create_from_nn(nn)` (statyczna)
-Tworzy genom wskazujący na istniejący obiekt NN (bez kopiowania).
+##### `create_from_parent(parent, info_genes)` (statyczna)
+Tworzy genom z rodzica i informacji o genach do zmiany.
 
 ##### `get_genes()` / `get_active_genes()`
 Zwraca wszystkie/aktywne geny (połączenia).
 
 ##### `_create_nn(parent, info)`
-Tworzy nową sieć neuronową na podstawie rodzica i informacji o mutacjach.
+Tworzy nową sieć neuronową na podstawie rodzica i informacji o genach do zmiany.
 
 ##### `predict(input)`
 Wykonuje predykcję - deleguje do `nn.calculate_output()`.

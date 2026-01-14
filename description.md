@@ -11,7 +11,7 @@ Neuro Ewolucja jest metodą pozwalającą znajdować małe sieci które są dost
 
 ### Dane:
 - https://gymnasium.farama.org/environments/classic_control/cart_pole/
-- https://gymnasium.farama.org/environments/classic_control/pendulum/
+- https://gymnasium.farama.org/environments/classic_control/mountain_car_continuous/
 - https://gymnasium.farama.org/environments/classic_control/acrobot/
 
 ### Materiały:
