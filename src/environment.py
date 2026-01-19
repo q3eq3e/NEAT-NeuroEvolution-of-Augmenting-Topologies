@@ -3,28 +3,35 @@ import numpy as np
 from enum import Enum
 from matplotlib import animation
 import matplotlib.pyplot as plt
+from typing import overload, Literal, Optional
 
 
 class Environment:
-    def __init__(self, env_name, seed=None):
-        self.env = gym.make(env_name, render_mode="rgb_array")
-        self.seed = seed
-
-    def __del__(self):
-        self.env.close()
-
     class ActionType(Enum):
         DISCRETE = 1
         CONTINUOUS = 2
         OTHER = 3
 
-    def get_params_num(self):
+    def __init__(self, env_name: str, seed: Optional[int] = None) -> None:
+        self.env = gym.make(env_name, render_mode="rgb_array")
+        self.seed = seed
+
+    def __del__(self) -> None:
+        self.env.close()
+
+    def get_params_num(self) -> tuple[int, int]:
         action_space = self.env.action_space
         observation_space = self.env.observation_space
         if isinstance(action_space, gym.spaces.Discrete):
             return observation_space.shape[0], int(action_space.n)
         elif isinstance(action_space, gym.spaces.Box):
             return observation_space.shape[0], action_space.shape[0]
+
+    @overload
+    def run_env(self, model, store_gif: Literal[False] = False) -> float: ...
+
+    @overload
+    def run_env(self, model, store_gif: Literal[True]) -> tuple[float, list]: ...
 
     def run_env(self, model, store_gif: bool = False):
         observation, _ = self.env.reset(seed=self.seed)
@@ -65,7 +72,9 @@ class Environment:
         return total_reward
 
 
-def store_episode_as_gif(frames, path="./", filename="animation.gif"):
+def store_episode_as_gif(
+    frames: list, path: str = "./", filename: str = "animation.gif"
+) -> None:
     fps = 30
     dpi = 100
     interval = 5

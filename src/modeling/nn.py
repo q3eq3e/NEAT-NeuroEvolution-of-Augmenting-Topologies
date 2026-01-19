@@ -2,7 +2,10 @@ from src.modeling.node import Node, Connection
 from src.modeling.node import NodeTypes
 from src.modeling.activation import sigmoid, identity
 from copy import deepcopy
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.modeling.genome import Genome
 import random
 
 
@@ -29,7 +32,7 @@ class NN:
                 )
 
     @staticmethod
-    def create_from_parent(parent, infos: dict) -> "NN":
+    def create_from_parent(parent: "Genome", infos: dict) -> "NN":
         nn = deepcopy(parent.get_nn())
         nn.connections.sort(key=lambda conn: conn.innovation_number)
         infos.sort(key=lambda info: info["innovation_number"])
@@ -73,7 +76,12 @@ class NN:
         return [conn for conn in self.connections if conn.enabled]
 
     def add_node(
-        self, connection: Connection, innovation: int, act=None, bias=0.0, out=0.0
+        self,
+        connection: Connection,
+        innovation: int,
+        act: Optional[Callable[[float], float]] = None,
+        bias: float = 0.0,
+        out: float = 0.0,
     ):
         if act is None:
             act = self.act
@@ -98,7 +106,9 @@ class NN:
         self._remove_connection(connection)
         self.nodes.sort(key=lambda node: node.layer)
 
-    def _adjust_layers(self, connection_from, connection_to):
+    def _adjust_layers(
+        self, connection_from: Connection, connection_to: Connection
+    ) -> int:
         layer_diff = connection_to.layer - connection_from.layer
         if layer_diff > 1:
             new_node_layer = connection_from.layer + 1
@@ -128,7 +138,7 @@ class NN:
             new_node_layer = connection_to.layer + 1
         return new_node_layer
 
-    def calculate_output(self, inputs):
+    def calculate_output(self, inputs: list[float]) -> list[float]:
         i = 0
         outputs = []
         while i < len(self.nodes) and self.nodes[i].type == NodeTypes.INPUT:
@@ -145,7 +155,7 @@ class NN:
 
         return outputs
 
-    def __str__(self):
+    def __str__(self) -> str:
         neurons_in_layer = [
             [n for n in self.nodes if n.layer == i]
             for i in range(self.nodes[-1].layer + 1)

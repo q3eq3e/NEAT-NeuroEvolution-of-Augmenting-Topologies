@@ -5,6 +5,7 @@ from src.modeling.activation import sigmoid
 from tqdm import tqdm
 from copy import deepcopy
 from typing import Callable
+from src.logger import Logger
 
 
 class NEAT:
@@ -252,21 +253,21 @@ class NEAT:
 
     def train(
         self,
-        evaluate: Callable[["NEAT", bool], float],
-        weight_mutation_rate=0.3,
-        mutation_range=0.5,
-        add_node_rate=0.01,
-        add_connection_rate=0.01,
-        compatibility_threshold=3,
-        c1=0.5,
-        c2=2,
-        c3=2,
-        best_individuals_copied=1,
-        num_generations=50,
-        population_size=100,
-        act=sigmoid,
-        verbose=False,
-        callbacks=None,
+        evaluate: Callable[["NEAT", bool], float | tuple[float, list]],
+        weight_mutation_rate: float = 0.3,
+        mutation_range: float = 0.5,
+        add_node_rate: float = 0.01,
+        add_connection_rate: float = 0.01,
+        compatibility_threshold: float = 3,
+        c1: float = 0.5,
+        c2: float = 2,
+        c3: float = 2,
+        best_individuals_copied: float | int = 1,
+        num_generations: int = 50,
+        population_size: int = 100,
+        act: Callable[[float], float] = sigmoid,
+        verbose: bool = False,
+        callbacks: list[Logger] = None,
     ) -> None:
         self.act = act
         self.initialize_population(population_size)
